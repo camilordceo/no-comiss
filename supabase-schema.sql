@@ -200,6 +200,46 @@ ALTER TABLE calculator_leads ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Public can create calculator leads" ON calculator_leads FOR INSERT WITH CHECK (true);
 
 -- ============================================================
+-- INTERESTED SELLERS
+-- ============================================================
+CREATE TABLE interested_sellers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  full_name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  phone TEXT,
+  address_or_zip TEXT NOT NULL,
+  home_value_range TEXT,
+  timeline TEXT,
+  source TEXT DEFAULT 'landing_page',
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE interested_sellers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Service role can manage interested sellers" ON interested_sellers FOR ALL USING (true);
+CREATE POLICY "Public can create interested sellers" ON interested_sellers FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- CONTENT PIECES (Blog)
+-- ============================================================
+CREATE TABLE content_pieces (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug TEXT NOT NULL UNIQUE,
+  title TEXT NOT NULL,
+  excerpt TEXT NOT NULL,
+  topic TEXT NOT NULL,
+  content TEXT,
+  reading_time_minutes INTEGER DEFAULT 5,
+  status TEXT DEFAULT 'draft' CHECK (status IN ('draft', 'published', 'archived')),
+  published_at TIMESTAMPTZ DEFAULT NOW(),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE content_pieces ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Anyone can read published content" ON content_pieces FOR SELECT USING (status = 'published');
+CREATE POLICY "Service role can manage content" ON content_pieces FOR ALL USING (true);
+
+-- ============================================================
 -- HELPER FUNCTIONS
 -- ============================================================
 

@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { CommissionCalculator } from "@/components/marketing/commission-calculator";
 
 export const metadata: Metadata = {
-  title: "Calculadora de Ahorro",
+  title: "Commission Savings Calculator",
   description:
-    "Calcula cuánto te ahorras vendiendo sin agente inmobiliario. Compara comisión tradicional vs NoComiss.",
+    "Calculate exactly how much you save by selling your home without a real estate agent. Compare traditional 5-6% commission vs. NoComiss flat fee.",
 };
 
 export default function CalculatorPage() {
@@ -13,16 +13,16 @@ export default function CalculatorPage() {
       <div className="max-w-2xl mx-auto">
         <div className="text-center mb-10">
           <p className="text-sm font-medium text-primary uppercase tracking-wide mb-3">
-            Calculadora de ahorro
+            Savings calculator
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">
-            ¿Cuánto ahorras con NoComiss?
+            How much could you keep?
           </h1>
           <p className="text-gray-500 leading-relaxed">
-            Ingresa el valor de tu inmueble y ve exactamente cuánto te quedas en el bolsillo.
+            Enter your home&apos;s value and see exactly how much the traditional
+            5-6% agent commission costs you — and what you&apos;d pay with NoComiss instead.
           </p>
         </div>
-
         <CommissionCalculator />
       </div>
     </div>

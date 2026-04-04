@@ -264,6 +264,80 @@ export type Database = {
         };
         Relationships: [];
       };
+      interested_sellers: {
+        Row: {
+          id: string;
+          full_name: string;
+          email: string;
+          phone: string | null;
+          address_or_zip: string;
+          home_value_range: string | null;
+          timeline: string | null;
+          source: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          email: string;
+          phone?: string | null;
+          address_or_zip: string;
+          home_value_range?: string | null;
+          timeline?: string | null;
+          source?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          full_name?: string;
+          email?: string;
+          phone?: string | null;
+          address_or_zip?: string;
+          home_value_range?: string | null;
+          timeline?: string | null;
+          source?: string | null;
+        };
+        Relationships: [];
+      };
+      content_pieces: {
+        Row: {
+          id: string;
+          slug: string;
+          title: string;
+          excerpt: string;
+          topic: string;
+          content: string | null;
+          reading_time_minutes: number;
+          status: "draft" | "published" | "archived";
+          published_at: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          slug: string;
+          title: string;
+          excerpt: string;
+          topic: string;
+          content?: string | null;
+          reading_time_minutes?: number;
+          status?: "draft" | "published" | "archived";
+          published_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          slug?: string;
+          title?: string;
+          excerpt?: string;
+          topic?: string;
+          content?: string | null;
+          reading_time_minutes?: number;
+          status?: "draft" | "published" | "archived";
+          published_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: {
       [_ in never]: never;
@@ -291,3 +365,5 @@ export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type Showing = Database["public"]["Tables"]["showings"]["Row"];
 export type Offer = Database["public"]["Tables"]["offers"]["Row"];
 export type CalculatorLead = Database["public"]["Tables"]["calculator_leads"]["Row"];
+export type InterestedSeller = Database["public"]["Tables"]["interested_sellers"]["Row"];
+export type ContentPiece = Database["public"]["Tables"]["content_pieces"]["Row"];

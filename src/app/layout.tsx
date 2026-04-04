@@ -10,16 +10,33 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "NoComiss — Vende tu casa sin pagar comisión",
+    default: "NoComiss — Sell Your Home with AI | Save 5-6% Commission",
     template: "%s | NoComiss",
   },
   description:
-    "Vende tu inmueble con IA. Sin agentes, sin comisiones del 5-6%. Solo $100-$1,000/mes por tecnología que trabaja 24/7 por ti.",
-  keywords: ["vender casa", "sin comisión", "IA inmobiliaria", "Colombia", "Bogotá", "Medellín"],
+    "Your AI real estate agent for $99/month instead of $24,000. NoComiss writes your listing, runs your ads, and handles buyer communication 24/7. Keep the commission.",
+  keywords: [
+    "sell home without agent",
+    "FSBO",
+    "for sale by owner",
+    "save real estate commission",
+    "AI home selling",
+    "sell house without realtor",
+    "flat fee MLS",
+  ],
   openGraph: {
     type: "website",
-    locale: "es_CO",
-    siteName: "NoComiss by Rentmies",
+    locale: "en_US",
+    siteName: "NoComiss",
+    title: "Sell Your Home with AI. Keep the Commission.",
+    description:
+      "NoComiss is your AI real estate agent — $99/month instead of 5-6%. Generate your listing, run ads, and handle buyers 24/7.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sell Your Home with AI. Keep the Commission.",
+    description:
+      "NoComiss is your AI real estate agent — $99/month instead of 5-6%. Generate your listing, run ads, and handle buyers 24/7.",
   },
 };
 
@@ -29,7 +46,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={inter.variable}>
+    <html lang="en" className={inter.variable}>
       <body className="font-sans antialiased bg-background text-foreground">
         {children}
       </body>

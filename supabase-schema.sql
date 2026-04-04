@@ -1,0 +1,225 @@
+-- NoComiss Supabase Schema
+-- Run this in your Supabase SQL editor
+
+-- Enable UUID extension
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+-- ============================================================
+-- PROFILES
+-- ============================================================
+CREATE TABLE profiles (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT NOT NULL,
+  full_name TEXT,
+  phone TEXT,
+  avatar_url TEXT,
+  subscription_tier TEXT CHECK (subscription_tier IN ('starter', 'pro', 'elite')),
+  subscription_status TEXT CHECK (subscription_status IN ('active', 'past_due', 'cancelled')),
+  subscription_id TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can read own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+
+-- Auto-create profile on signup
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO profiles (id, email, full_name, avatar_url)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    NEW.raw_user_meta_data->>'full_name',
+    NEW.raw_user_meta_data->>'avatar_url'
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION handle_new_user();
+
+-- Auto-update updated_at
+CREATE OR REPLACE FUNCTION update_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER profiles_updated_at
+  BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- LISTINGS
+-- ============================================================
+CREATE TABLE listings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  slug TEXT UNIQUE NOT NULL,
+  status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft', 'active', 'paused', 'sold', 'expired')),
+  property_type TEXT NOT NULL CHECK (property_type IN ('apartment', 'house', 'studio', 'commercial', 'land')),
+  title TEXT NOT NULL,
+  description TEXT,
+  address TEXT NOT NULL,
+  city TEXT NOT NULL,
+  neighborhood TEXT,
+  price NUMERIC NOT NULL,
+  area_m2 NUMERIC NOT NULL,
+  bedrooms INTEGER,
+  bathrooms INTEGER,
+  parking INTEGER DEFAULT 0,
+  floor INTEGER,
+  stratum INTEGER CHECK (stratum BETWEEN 1 AND 6),
+  amenities TEXT[] DEFAULT '{}',
+  photos TEXT[] DEFAULT '{}',
+  video_url TEXT,
+  rentcast_data JSONB,
+  ai_descriptions JSONB,
+  selected_description_idx INTEGER DEFAULT 0,
+  views_count INTEGER DEFAULT 0 NOT NULL,
+  leads_count INTEGER DEFAULT 0 NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  published_at TIMESTAMPTZ
+);
+
+CREATE INDEX listings_user_id_idx ON listings(user_id);
+CREATE INDEX listings_slug_idx ON listings(slug);
+CREATE INDEX listings_status_idx ON listings(status);
+CREATE INDEX listings_city_idx ON listings(city);
+
+ALTER TABLE listings ENABLE ROW LEVEL SECURITY;
+
+-- Owners can manage their listings
+CREATE POLICY "Owners can manage own listings" ON listings
+  FOR ALL USING (auth.uid() = user_id);
+
+-- Public can read active listings
+CREATE POLICY "Public can read active listings" ON listings
+  FOR SELECT USING (status = 'active');
+
+CREATE TRIGGER listings_updated_at
+  BEFORE UPDATE ON listings
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- LEADS
+-- ============================================================
+CREATE TABLE leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  email TEXT,
+  phone TEXT,
+  message TEXT,
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'contacted', 'showing_scheduled', 'offer_made', 'closed', 'lost')),
+  source TEXT NOT NULL DEFAULT 'web' CHECK (source IN ('web', 'whatsapp', 'instagram', 'facebook', 'portal')),
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+CREATE INDEX leads_listing_id_idx ON leads(listing_id);
+CREATE INDEX leads_user_id_idx ON leads(user_id);
+
+ALTER TABLE leads ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Listing owners can manage leads" ON leads FOR ALL USING (auth.uid() = user_id);
+-- Allow public inserts for the contact form
+CREATE POLICY "Public can create leads" ON leads FOR INSERT WITH CHECK (true);
+
+CREATE TRIGGER leads_updated_at
+  BEFORE UPDATE ON leads
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- SHOWINGS
+-- ============================================================
+CREATE TABLE showings (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  scheduled_at TIMESTAMPTZ NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'confirmed', 'completed', 'cancelled')),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE showings ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Listing owners can manage showings" ON showings
+  FOR ALL USING (
+    auth.uid() = (SELECT user_id FROM listings WHERE id = listing_id)
+  );
+
+-- ============================================================
+-- OFFERS
+-- ============================================================
+CREATE TABLE offers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  listing_id UUID NOT NULL REFERENCES listings(id) ON DELETE CASCADE,
+  lead_id UUID NOT NULL REFERENCES leads(id) ON DELETE CASCADE,
+  amount NUMERIC NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'countered', 'accepted', 'rejected')),
+  conditions TEXT,
+  ai_analysis JSONB,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE offers ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Listing owners can manage offers" ON offers
+  FOR ALL USING (
+    auth.uid() = (SELECT user_id FROM listings WHERE id = listing_id)
+  );
+
+CREATE TRIGGER offers_updated_at
+  BEFORE UPDATE ON offers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+-- ============================================================
+-- CALCULATOR LEADS
+-- ============================================================
+CREATE TABLE calculator_leads (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT NOT NULL,
+  home_value NUMERIC NOT NULL,
+  city TEXT NOT NULL,
+  traditional_commission NUMERIC NOT NULL,
+  savings_estimate NUMERIC NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE calculator_leads ENABLE ROW LEVEL SECURITY;
+-- Only service role can read; public can insert
+CREATE POLICY "Public can create calculator leads" ON calculator_leads FOR INSERT WITH CHECK (true);
+
+-- ============================================================
+-- HELPER FUNCTIONS
+-- ============================================================
+
+-- Increment views_count safely
+CREATE OR REPLACE FUNCTION increment_views_count(listing_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE listings SET views_count = views_count + 1 WHERE id = listing_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Increment leads_count safely
+CREATE OR REPLACE FUNCTION increment_leads_count(listing_id UUID)
+RETURNS void AS $$
+BEGIN
+  UPDATE listings SET leads_count = leads_count + 1 WHERE id = listing_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================================
+-- STORAGE BUCKETS (run via Supabase Dashboard or API)
+-- ============================================================
+-- CREATE BUCKET: photos (public: true, allowed_mime_types: ['image/*'], max_file_size: 10485760)

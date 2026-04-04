@@ -220,6 +220,57 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- ============================================================
--- STORAGE BUCKETS (run via Supabase Dashboard or API)
+-- STORAGE BUCKETS
+-- Run these in the Supabase SQL editor or Dashboard > Storage
 -- ============================================================
--- CREATE BUCKET: photos (public: true, allowed_mime_types: ['image/*'], max_file_size: 10485760)
+
+-- Public buckets (accessible without auth)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES
+  ('listing-photos', 'listing-photos', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/heic']),
+  ('listing-videos', 'listing-videos', true, 104857600, ARRAY['video/mp4', 'video/quicktime', 'video/webm']),
+  ('ad-creatives', 'ad-creatives', true, 10485760, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO NOTHING;
+
+-- Private bucket (requires auth to read)
+INSERT INTO storage.buckets (id, name, public, file_size_limit)
+VALUES
+  ('documents', 'documents', false, 52428800)
+ON CONFLICT (id) DO NOTHING;
+
+-- Storage RLS policies
+
+-- listing-photos: authenticated users can upload to their own folder
+CREATE POLICY "Users can upload listing photos" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'listing-photos');
+
+CREATE POLICY "Anyone can view listing photos" ON storage.objects
+  FOR SELECT USING (bucket_id = 'listing-photos');
+
+CREATE POLICY "Users can delete own listing photos" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (bucket_id = 'listing-photos' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+-- listing-videos
+CREATE POLICY "Users can upload listing videos" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (bucket_id = 'listing-videos');
+
+CREATE POLICY "Anyone can view listing videos" ON storage.objects
+  FOR SELECT USING (bucket_id = 'listing-videos');
+
+-- ad-creatives
+CREATE POLICY "Users can manage ad creatives" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'ad-creatives')
+  WITH CHECK (bucket_id = 'ad-creatives');
+
+CREATE POLICY "Anyone can view ad creatives" ON storage.objects
+  FOR SELECT USING (bucket_id = 'ad-creatives');
+
+-- documents: private, only owner can access
+CREATE POLICY "Users can manage own documents" ON storage.objects
+  FOR ALL TO authenticated
+  USING (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text)
+  WITH CHECK (bucket_id = 'documents' AND (storage.foldername(name))[1] = auth.uid()::text);

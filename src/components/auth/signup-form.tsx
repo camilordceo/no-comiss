@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { SocialAuth } from "@/components/auth/social-auth";
 import { createClient } from "@/lib/supabase/client";
 
 export function SignupForm() {
@@ -52,7 +53,9 @@ export function SignupForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <div className="space-y-4">
+      <SocialAuth />
+      <form onSubmit={handleSubmit} className="space-y-3">
       <Input
         label="Full name"
         type="text"
@@ -104,5 +107,6 @@ export function SignupForm() {
         Create free account
       </Button>
     </form>
+    </div>
   );
 }

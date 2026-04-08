@@ -4,29 +4,24 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { StepAddress } from "./step-address";
-import { StepPhotos } from "./step-photos";
 import { StepDetails } from "./step-details";
 import { StepStory } from "./step-story";
+import { StepPhotos } from "./step-photos";
+import { StepAddress } from "./step-address";
 import { StepCalendar } from "./step-calendar";
 
+// New order: Detalles → Historia → Fotos → Dirección → Calendario
+// Reason: hook seller with savings calc + easy fields first; address last = less friction
 const STEPS = [
-  { label: "Dirección", short: "1" },
-  { label: "Fotos", short: "2" },
-  { label: "Detalles", short: "3" },
-  { label: "Historia", short: "4" },
+  { label: "Tu inmueble", short: "1" },
+  { label: "Historia", short: "2" },
+  { label: "Fotos", short: "3" },
+  { label: "Ubicación", short: "4" },
   { label: "Calendario", short: "5" },
 ];
 
 export interface WizardData {
-  // Step 1
-  address: string;
-  city: string;
-  neighborhood: string;
-  rentcast_data?: Record<string, unknown>;
-  // Step 2
-  photos: string[];
-  // Step 3
+  // Step 1 — Details
   property_type: "apartment" | "house" | "studio" | "commercial" | "land";
   price: number;
   area_m2: number;
@@ -36,16 +31,20 @@ export interface WizardData {
   floor?: number;
   stratum?: number;
   amenities: string[];
-  // Step 4
+  // Step 2 — Story
   story: string;
-  // Step 5
+  // Step 3 — Photos
+  photos: string[];
+  // Step 4 — Address
+  address: string;
+  city: string;
+  neighborhood: string;
+  rentcast_data?: Record<string, unknown>;
+  // Step 5 — Calendar
   calendar_setup: boolean;
 }
 
 const INITIAL_DATA: WizardData = {
-  address: "",
-  city: "",
-  neighborhood: "",
   property_type: "apartment",
   price: 0,
   area_m2: 0,
@@ -53,8 +52,11 @@ const INITIAL_DATA: WizardData = {
   bathrooms: 1,
   parking: 0,
   amenities: [],
-  photos: [],
   story: "",
+  photos: [],
+  address: "",
+  city: "",
+  neighborhood: "",
   calendar_setup: false,
 };
 
@@ -101,7 +103,7 @@ export function OnboardingWizard({ userId }: WizardProps) {
 
   return (
     <div>
-      {/* Progress */}
+      {/* Progress bar */}
       <div className="flex items-center gap-2 mb-8">
         {STEPS.map((s, i) => (
           <div key={i} className="flex items-center gap-2 flex-1">
@@ -115,11 +117,7 @@ export function OnboardingWizard({ userId }: WizardProps) {
                   : "bg-surface text-gray-400 border border-border"
               )}
             >
-              {i < step ? (
-                <CheckCircle2 className="w-4 h-4" />
-              ) : (
-                s.short
-              )}
+              {i < step ? <CheckCircle2 className="w-4 h-4" /> : s.short}
             </div>
             {i < STEPS.length - 1 && (
               <div
@@ -135,15 +133,16 @@ export function OnboardingWizard({ userId }: WizardProps) {
 
       {/* Step label */}
       <p className="text-xs text-gray-500 text-center mb-6">
-        Paso {step + 1} de {STEPS.length} — <span className="font-medium text-foreground">{STEPS[step].label}</span>
+        Paso {step + 1} de {STEPS.length} —{" "}
+        <span className="font-medium text-foreground">{STEPS[step].label}</span>
       </p>
 
       {/* Step content */}
       <div className="bg-white rounded-[12px] border border-border shadow-sm p-6">
-        {step === 0 && <StepAddress {...stepProps} />}
-        {step === 1 && <StepPhotos {...stepProps} />}
-        {step === 2 && <StepDetails {...stepProps} />}
-        {step === 3 && <StepStory {...stepProps} />}
+        {step === 0 && <StepDetails {...stepProps} isFirst />}
+        {step === 1 && <StepStory {...stepProps} />}
+        {step === 2 && <StepPhotos {...stepProps} />}
+        {step === 3 && <StepAddress {...stepProps} />}
         {step === 4 && (
           <StepCalendar
             {...stepProps}

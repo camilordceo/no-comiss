@@ -9,6 +9,8 @@ import {
   Settings,
   LogOut,
   Plus,
+  CalendarDays,
+  Handshake,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +20,8 @@ import { useState } from "react";
 const navItems = [
   { href: "/dashboard", label: "Inicio", icon: LayoutDashboard, exact: true },
   { href: "/dashboard/listings", label: "Mis inmuebles", icon: Home },
+  { href: "/dashboard/visitas", label: "Visitas", icon: CalendarDays },
+  { href: "/dashboard/negociaciones", label: "Negociaciones", icon: Handshake },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/settings", label: "Configuración", icon: Settings },
 ];

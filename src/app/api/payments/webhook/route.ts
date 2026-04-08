@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { validateWebhookSignature, mapWompiStatus, type PlanId } from "@/lib/wompi";
+import { notifyPaymentConfirmed } from "@/lib/notifications";
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
@@ -67,9 +68,9 @@ export async function POST(request: Request) {
     })
     .eq("id", payment.id);
 
-  // On approval → activate subscription
+  // On approval → activate subscription + notify
   if (internalStatus === "approved") {
-    await supabase
+    const { data: updatedProfile } = await supabase
       .from("profiles")
       .update({
         subscription_tier: payment.plan_id as PlanId,
@@ -77,7 +78,17 @@ export async function POST(request: Request) {
         subscription_id: wompiTransactionId,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", payment.user_id);
+      .eq("id", payment.user_id)
+      .select("email, phone")
+      .single();
+
+    if (updatedProfile) {
+      notifyPaymentConfirmed({
+        userEmail: updatedProfile.email,
+        userPhone: updatedProfile.phone ?? undefined,
+        planName: payment.plan_id,
+      }).catch(console.error);
+    }
   }
 
   // On voided/declined after being active → cancel

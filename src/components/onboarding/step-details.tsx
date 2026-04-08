@@ -2,20 +2,22 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, formatCOP } from "@/lib/utils";
 import type { WizardData } from "./wizard";
+import { TrendingDown } from "lucide-react";
 
 const PROPERTY_TYPES = [
-  { value: "apartment", label: "Apartamento" },
-  { value: "house", label: "Casa" },
-  { value: "studio", label: "Estudio" },
-  { value: "commercial", label: "Comercial" },
-  { value: "land", label: "Lote" },
+  { value: "apartment", label: "Apartamento", emoji: "🏢" },
+  { value: "house", label: "Casa", emoji: "🏠" },
+  { value: "studio", label: "Estudio", emoji: "🛋️" },
+  { value: "commercial", label: "Comercial", emoji: "🏪" },
+  { value: "land", label: "Lote", emoji: "🌿" },
 ] as const;
 
 const AMENITIES = [
-  "Piscina", "Gimnasio", "Terraza", "Jardín", "Portería 24h", "Parqueadero visitantes",
-  "Salón comunal", "BBQ", "Cuarto útil", "Depósito", "Ascensor", "Vigilancia",
+  "Piscina", "Gimnasio", "Terraza", "Jardín", "Portería 24h",
+  "Parqueadero visitantes", "Salón comunal", "BBQ", "Cuarto útil",
+  "Depósito", "Ascensor", "Vigilancia",
 ];
 
 interface Props {
@@ -23,6 +25,7 @@ interface Props {
   updateData: (d: Partial<WizardData>) => void;
   onNext: () => void;
   onBack: () => void;
+  isFirst?: boolean;
 }
 
 function NumberInput({
@@ -64,7 +67,34 @@ function NumberInput({
   );
 }
 
-export function StepDetails({ data, updateData, onNext, onBack }: Props) {
+// Savings calc: traditional 3% commission vs NoComiss flat fee
+function SavingsBanner({ price }: { price: number }) {
+  if (!price || price < 10_000_000) return null;
+
+  const commission = Math.round(price * 0.03);
+  const nocomissFee = 1_497_000; // Pro plan annual / month equiv
+  const savings = commission - nocomissFee;
+
+  return (
+    <div className="bg-primary/5 border border-primary/20 rounded-[10px] p-4 flex items-start gap-3">
+      <div className="w-8 h-8 rounded-full bg-primary/15 flex items-center justify-center shrink-0">
+        <TrendingDown className="w-4 h-4 text-primary" />
+      </div>
+      <div>
+        <p className="text-sm font-semibold text-foreground">
+          Te ahorras <span className="text-primary">{formatCOP(savings)}</span> con NoComiss
+        </p>
+        <p className="text-xs text-gray-500 mt-0.5">
+          Comisión tradicional (3%):{" "}
+          <span className="line-through">{formatCOP(commission)}</span> →
+          con nosotros pagas solo la suscripción
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function StepDetails({ data, updateData, onNext, onBack, isFirst }: Props) {
   function toggleAmenity(a: string) {
     const current = data.amenities;
     if (current.includes(a)) {
@@ -80,10 +110,10 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
     <div className="space-y-5">
       <div>
         <h2 className="text-lg font-semibold text-foreground mb-1">
-          Detalles del inmueble
+          Cuéntanos sobre tu inmueble
         </h2>
         <p className="text-sm text-gray-500">
-          Información que los compradores necesitan ver.
+          Empieza con lo básico — completar esto toma menos de 2 minutos.
         </p>
       </div>
 
@@ -97,12 +127,13 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
               type="button"
               onClick={() => updateData({ property_type: t.value })}
               className={cn(
-                "px-3 py-1.5 rounded-full text-sm border transition-colors",
+                "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-colors",
                 data.property_type === t.value
                   ? "bg-primary text-white border-primary"
                   : "border-border text-gray-600 hover:border-primary hover:text-primary"
               )}
             >
+              <span>{t.emoji}</span>
               {t.label}
             </button>
           ))}
@@ -112,7 +143,7 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
       {/* Price and area */}
       <div className="grid grid-cols-2 gap-3">
         <Input
-          label="Precio (COP)"
+          label="Precio de venta (COP)"
           type="number"
           placeholder="450000000"
           value={data.price || ""}
@@ -127,6 +158,9 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
           onChange={(e) => updateData({ area_m2: Number(e.target.value) })}
         />
       </div>
+
+      {/* Live savings banner */}
+      <SavingsBanner price={data.price} />
 
       {/* Bedrooms, bathrooms, parking */}
       <div className="grid grid-cols-3 gap-3">
@@ -176,7 +210,7 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
       {/* Amenities */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-medium text-foreground">
-          Amenidades (opcional)
+          Amenidades <span className="text-gray-400 font-normal">(opcional)</span>
         </label>
         <div className="flex flex-wrap gap-2">
           {AMENITIES.map((a) => (
@@ -198,10 +232,12 @@ export function StepDetails({ data, updateData, onNext, onBack }: Props) {
       </div>
 
       <div className="flex gap-3">
-        <Button variant="outline" size="md" className="flex-1" onClick={onBack}>
-          Atrás
-        </Button>
-        <Button size="md" className="flex-1" onClick={onNext} disabled={!isValid}>
+        {!isFirst && (
+          <Button variant="outline" size="md" className="flex-1" onClick={onBack}>
+            Atrás
+          </Button>
+        )}
+        <Button size="md" className={isFirst ? "w-full" : "flex-1"} onClick={onNext} disabled={!isValid}>
           Continuar
         </Button>
       </div>

@@ -85,6 +85,7 @@ export default async function ListingsPage() {
                 {/* Photo */}
                 <div className="h-44 bg-surface relative overflow-hidden">
                   {listing.photos?.[0] ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={listing.photos[0]}
                       alt={listing.title}

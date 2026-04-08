@@ -166,6 +166,7 @@ export default async function NegociacionesPage() {
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-[8px] bg-surface shrink-0 overflow-hidden">
                       {photos[0] ? (
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={photos[0]} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">🏠</div>

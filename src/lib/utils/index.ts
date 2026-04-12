@@ -41,6 +41,14 @@ export function calculateCommissionSavings(homeValue: number) {
   };
 }
 
+export function formatUSD(amount: number): string {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(amount);
+}
+
 export function getRelativeTime(date: string | Date): string {
   const now = new Date();
   const d = new Date(date);
@@ -50,11 +58,11 @@ export function getRelativeTime(date: string | Date): string {
   const hours = Math.floor(minutes / 60);
   const days = Math.floor(hours / 24);
 
-  if (days > 30) return d.toLocaleDateString("es-CO");
-  if (days > 1) return `hace ${days} días`;
-  if (days === 1) return "ayer";
-  if (hours > 1) return `hace ${hours} horas`;
-  if (hours === 1) return "hace 1 hora";
-  if (minutes > 1) return `hace ${minutes} minutos`;
-  return "hace un momento";
+  if (days > 30) return d.toLocaleDateString("en-US");
+  if (days > 1) return `${days} days ago`;
+  if (days === 1) return "yesterday";
+  if (hours > 1) return `${hours} hours ago`;
+  if (hours === 1) return "1 hour ago";
+  if (minutes > 1) return `${minutes} minutes ago`;
+  return "just now";
 }

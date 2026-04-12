@@ -37,8 +37,6 @@ export async function POST(request: Request) {
     id: wompiTransactionId,
     reference,
     status: wompiStatus,
-    amount_in_cents: amountCents,
-    currency,
   } = transaction;
 
   const supabase = await createServiceClient();

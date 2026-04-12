@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -5,7 +6,7 @@ import { Plus, Home, Eye, Users } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCOP } from "@/lib/utils";
+import { formatUSD } from "@/lib/utils";
 import type { Listing } from "@/lib/types/database";
 
 export const metadata = { title: "Mis inmuebles" };
@@ -85,7 +86,6 @@ export default async function ListingsPage() {
                 {/* Photo */}
                 <div className="h-44 bg-surface relative overflow-hidden">
                   {listing.photos?.[0] ? (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={listing.photos[0]}
                       alt={listing.title}
@@ -107,7 +107,7 @@ export default async function ListingsPage() {
                   <p className="font-semibold text-foreground truncate">{listing.title}</p>
                   <p className="text-xs text-gray-400 truncate mt-0.5">{listing.address}</p>
                   <p className="text-base font-bold text-primary mt-2">
-                    {formatCOP(listing.price)}
+                    {formatUSD(listing.price)}
                   </p>
 
                   <div className="flex items-center gap-4 mt-3 text-xs text-gray-500">

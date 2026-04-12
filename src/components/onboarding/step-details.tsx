@@ -2,7 +2,7 @@
 
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { cn, formatCOP } from "@/lib/utils";
+import { cn, formatUSD } from "@/lib/utils";
 import type { WizardData } from "./wizard";
 import { TrendingDown } from "lucide-react";
 
@@ -82,11 +82,11 @@ function SavingsBanner({ price }: { price: number }) {
       </div>
       <div>
         <p className="text-sm font-semibold text-foreground">
-          Te ahorras <span className="text-primary">{formatCOP(savings)}</span> con NoComiss
+          Te ahorras <span className="text-primary">{formatUSD(savings)}</span> con NoComiss
         </p>
         <p className="text-xs text-gray-500 mt-0.5">
           Comisión tradicional (3%):{" "}
-          <span className="line-through">{formatCOP(commission)}</span> →
+          <span className="line-through">{formatUSD(commission)}</span> →
           con nosotros pagas solo la suscripción
         </p>
       </div>
@@ -241,6 +241,15 @@ export function StepDetails({ data, updateData, onNext, onBack, isFirst }: Props
           Continuar
         </Button>
       </div>
+      {!isValid && (data.price > 0 || data.area_m2 > 0) && (
+        <p className="text-xs text-center text-gray-400">
+          {data.price === 0 && data.area_m2 === 0
+            ? "Ingresa el precio y el área para continuar"
+            : data.price === 0
+            ? "Ingresa el precio de venta para continuar"
+            : "Ingresa el área del inmueble para continuar"}
+        </p>
+      )}
     </div>
   );
 }

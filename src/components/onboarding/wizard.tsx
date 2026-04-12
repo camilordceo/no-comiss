@@ -9,19 +9,26 @@ import { StepStory } from "./step-story";
 import { StepPhotos } from "./step-photos";
 import { StepAddress } from "./step-address";
 import { StepCalendar } from "./step-calendar";
+import { StepVideo } from "./step-video";
 
-// New order: Detalles → Historia → Fotos → Dirección → Calendario
-// Reason: hook seller with savings calc + easy fields first; address last = less friction
+// Step order matches the roadmap:
+// Dirección → Detalles → Fotos → Video → Historia → Calendario
 const STEPS = [
-  { label: "Tu inmueble", short: "1" },
-  { label: "Historia", short: "2" },
-  { label: "Fotos", short: "3" },
-  { label: "Ubicación", short: "4" },
-  { label: "Calendario", short: "5" },
+  { label: "Dirección", short: "1" },
+  { label: "Detalles",  short: "2" },
+  { label: "Fotos",     short: "3" },
+  { label: "Video",     short: "4" },
+  { label: "Historia",  short: "5" },
+  { label: "Calendario", short: "6" },
 ];
 
 export interface WizardData {
-  // Step 1 — Details
+  // Step 1 — Address
+  address: string;
+  city: string;
+  neighborhood: string;
+  rentcast_data?: Record<string, unknown>;
+  // Step 2 — Details
   property_type: "apartment" | "house" | "studio" | "commercial" | "land";
   price: number;
   area_m2: number;
@@ -31,20 +38,21 @@ export interface WizardData {
   floor?: number;
   stratum?: number;
   amenities: string[];
-  // Step 2 — Story
-  story: string;
   // Step 3 — Photos
   photos: string[];
-  // Step 4 — Address
-  address: string;
-  city: string;
-  neighborhood: string;
-  rentcast_data?: Record<string, unknown>;
-  // Step 5 — Calendar
+  photo_rooms: string[];
+  // Step 4 — Video
+  video_url: string;
+  // Step 5 — Story
+  story: string;
+  // Step 6 — Calendar
   calendar_setup: boolean;
 }
 
 const INITIAL_DATA: WizardData = {
+  address: "",
+  city: "",
+  neighborhood: "",
   property_type: "apartment",
   price: 0,
   area_m2: 0,
@@ -52,11 +60,10 @@ const INITIAL_DATA: WizardData = {
   bathrooms: 1,
   parking: 0,
   amenities: [],
-  story: "",
   photos: [],
-  address: "",
-  city: "",
-  neighborhood: "",
+  photo_rooms: [],
+  video_url: "",
+  story: "",
   calendar_setup: false,
 };
 
@@ -69,6 +76,7 @@ export function OnboardingWizard({ userId }: WizardProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<WizardData>(INITIAL_DATA);
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   function updateData(updates: Partial<WizardData>) {
     setData((prev) => ({ ...prev, ...updates }));
@@ -84,17 +92,38 @@ export function OnboardingWizard({ userId }: WizardProps) {
 
   async function handleFinish() {
     setSubmitting(true);
+    setSubmitError(null);
+
     try {
       const res = await fetch("/api/listings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...data, user_id: userId }),
+        body: JSON.stringify({
+          ...data,
+          user_id: userId,
+          // Map internal fields to API fields
+          seller_story: data.story,
+          video_url: data.video_url || null,
+        }),
       });
-      const listing = await res.json();
-      if (listing.id) {
-        router.push(`/dashboard/listings/${listing.id}`);
+
+      const json = await res.json();
+
+      if (!res.ok) {
+        setSubmitError(json.error ?? "No se pudo crear el inmueble. Intenta de nuevo.");
+        return;
       }
+
+      if (!json.id) {
+        setSubmitError("Respuesta inesperada del servidor. Intenta de nuevo.");
+        return;
+      }
+
+      // Redirect to AI generation page so user immediately creates their listing copy
+      router.push(`/dashboard/listings/${json.id}/generate`);
     } catch {
+      setSubmitError("Error de red. Verifica tu conexión e intenta de nuevo.");
+    } finally {
       setSubmitting(false);
     }
   }
@@ -104,9 +133,9 @@ export function OnboardingWizard({ userId }: WizardProps) {
   return (
     <div>
       {/* Progress bar */}
-      <div className="flex items-center gap-2 mb-8">
+      <div className="flex items-center gap-1.5 mb-8 overflow-x-auto pb-1">
         {STEPS.map((s, i) => (
-          <div key={i} className="flex items-center gap-2 flex-1">
+          <div key={i} className="flex items-center gap-1.5 flex-1 min-w-0">
             <div
               className={cn(
                 "w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold shrink-0 transition-all duration-200",
@@ -122,7 +151,7 @@ export function OnboardingWizard({ userId }: WizardProps) {
             {i < STEPS.length - 1 && (
               <div
                 className={cn(
-                  "flex-1 h-0.5 transition-colors duration-200",
+                  "flex-1 h-0.5 transition-colors duration-200 min-w-[8px]",
                   i < step ? "bg-primary" : "bg-border"
                 )}
               />
@@ -139,11 +168,12 @@ export function OnboardingWizard({ userId }: WizardProps) {
 
       {/* Step content */}
       <div className="bg-white rounded-[12px] border border-border shadow-sm p-6">
-        {step === 0 && <StepDetails {...stepProps} isFirst />}
-        {step === 1 && <StepStory {...stepProps} />}
+        {step === 0 && <StepAddress {...stepProps} />}
+        {step === 1 && <StepDetails {...stepProps} isFirst={false} />}
         {step === 2 && <StepPhotos {...stepProps} />}
-        {step === 3 && <StepAddress {...stepProps} />}
-        {step === 4 && (
+        {step === 3 && <StepVideo {...stepProps} />}
+        {step === 4 && <StepStory {...stepProps} />}
+        {step === 5 && (
           <StepCalendar
             {...stepProps}
             onFinish={handleFinish}
@@ -151,6 +181,13 @@ export function OnboardingWizard({ userId }: WizardProps) {
           />
         )}
       </div>
+
+      {/* Submit error */}
+      {submitError && (
+        <div className="mt-4 rounded-[8px] bg-red-50 border border-red-100 px-3 py-2.5">
+          <p className="text-sm text-red-600">{submitError}</p>
+        </div>
+      )}
     </div>
   );
 }

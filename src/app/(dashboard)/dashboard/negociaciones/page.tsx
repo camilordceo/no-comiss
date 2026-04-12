@@ -1,9 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Handshake, ArrowRight, TrendingUp } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCOP, getRelativeTime } from "@/lib/utils";
+import { formatUSD, getRelativeTime } from "@/lib/utils";
 
 export const metadata = { title: "Negociaciones" };
 
@@ -83,7 +84,8 @@ export default async function NegociacionesPage() {
   ) ?? [];
 
   const totalValue = active.reduce((sum, n) => {
-    const listing = n.listings as Record<string, unknown> | null;
+    const raw = n as unknown as Record<string, unknown>;
+    const listing = raw.listings as Record<string, unknown> | null ?? null;
     return sum + ((listing?.price as number) ?? 0);
   }, 0);
 
@@ -99,7 +101,7 @@ export default async function NegociacionesPage() {
         {active.length > 0 && (
           <div className="text-right">
             <p className="text-xs text-gray-500">Valor en pipeline</p>
-            <p className="text-xl font-bold text-primary">{formatCOP(totalValue)}</p>
+            <p className="text-xl font-bold text-primary">{formatUSD(totalValue)}</p>
           </div>
         )}
       </div>
@@ -154,9 +156,14 @@ export default async function NegociacionesPage() {
             </div>
           ) : (
             active.map((n) => {
-              const listing = n.listings as Record<string, unknown> | null;
-              const buyer = n.buyer_profiles as Record<string, unknown> | null;
-              const photos = (listing?.photos as string[]) ?? [];
+              const raw = n as unknown as Record<string, unknown>;
+              const listing = raw.listings as Record<string, unknown> | null ?? null;
+              const buyer = raw.buyer_profiles as Record<string, unknown> | null ?? null;
+              const photos = listing?.photos as string[] ?? [];
+              const listingTitle = listing?.title as string ?? "Inmueble";
+              const listingPrice = listing?.price as number | undefined;
+              const buyerName = buyer?.name as string ?? "Comprador desconocido";
+              const buyerPhone = buyer?.phone as string | undefined;
 
               return (
                 <div
@@ -166,7 +173,6 @@ export default async function NegociacionesPage() {
                   <div className="flex items-start gap-4">
                     <div className="w-14 h-14 rounded-[8px] bg-surface shrink-0 overflow-hidden">
                       {photos[0] ? (
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
                         <img src={photos[0]} alt="" className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-300 text-xl">🏠</div>
@@ -175,27 +181,26 @@ export default async function NegociacionesPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-0.5">
                         <p className="text-sm font-semibold text-foreground truncate">
-                          {(listing?.title as string) ?? "Inmueble"}
+                          {listingTitle}
                         </p>
                         <Badge variant={STATUS_VARIANTS[n.status] ?? "neutral"}>
                           {STATUS_LABELS[n.status] ?? n.status}
                         </Badge>
                       </div>
                       <p className="text-xs text-gray-500 mb-1">
-                        {buyer ? (buyer.name as string) : "Comprador desconocido"}
-                        {buyer?.phone && ` · ${buyer.phone}`}
+                        {buyerName}{buyerPhone ? ` · ${buyerPhone}` : ""}
                       </p>
                       {n.initial_offer && (
                         <p className="text-xs text-foreground">
                           Oferta inicial:{" "}
                           <span className="font-semibold text-primary">
-                            {formatCOP(n.initial_offer)}
+                            {formatUSD(n.initial_offer)}
                           </span>
-                          {listing?.price && (
+                          {listingPrice ? (
                             <span className="text-gray-400 ml-1">
-                              (precio: {formatCOP(listing.price as number)})
+                              (precio: {formatUSD(listingPrice)})
                             </span>
-                          )}
+                          ) : null}
                         </p>
                       )}
                       <PipelineBar status={n.status} />
@@ -219,8 +224,11 @@ export default async function NegociacionesPage() {
           </CardHeader>
           <CardContent className="pt-0 space-y-2">
             {closed.map((n) => {
-              const listing = n.listings as Record<string, unknown> | null;
-              const buyer = n.buyer_profiles as Record<string, unknown> | null;
+              const raw = n as unknown as Record<string, unknown>;
+              const listing = raw.listings as Record<string, unknown> | null ?? null;
+              const buyer = raw.buyer_profiles as Record<string, unknown> | null ?? null;
+              const listingTitle = listing?.title as string ?? "Inmueble";
+              const buyerName = buyer?.name as string | undefined;
               return (
                 <div
                   key={n.id}
@@ -228,16 +236,16 @@ export default async function NegociacionesPage() {
                 >
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      {(listing?.title as string) ?? "Inmueble"}
+                      {listingTitle}
                     </p>
                     <p className="text-xs text-gray-400">
-                      {buyer ? (buyer.name as string) : "—"} · {getRelativeTime(n.updated_at)}
+                      {buyerName ?? "—"} · {getRelativeTime(n.updated_at)}
                     </p>
                   </div>
                   <div className="flex items-center gap-2">
                     {n.final_price && (
                       <span className="text-sm font-semibold text-foreground">
-                        {formatCOP(n.final_price)}
+                        {formatUSD(n.final_price)}
                       </span>
                     )}
                     <Badge variant={STATUS_VARIANTS[n.status] ?? "neutral"}>

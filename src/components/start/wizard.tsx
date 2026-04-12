@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 "use client";
 
 import { useState, useCallback, useRef } from "react";
@@ -157,9 +158,11 @@ function StepPhotos({
       const res = await fetch("/api/upload/session", { method: "POST", body: formData });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Upload failed");
-      return { ...photo, url: data.url, path: data.path, uploading: false };
+      return { ...photo, url: data.url, path: data.path, uploading: false, error: null };
     } catch (err) {
-      return { ...photo, uploading: false, error: String(err) };
+      const msg = err instanceof Error ? err.message : "Upload failed";
+      console.error("[upload]", msg);
+      return { ...photo, uploading: false, error: msg };
     }
   }
 
@@ -214,6 +217,14 @@ function StepPhotos({
         <h2 className="text-2xl font-bold text-foreground mb-2">Upload your photos</h2>
         <p className="text-gray-500">Add at least 5 photos. Tag each one with the room name.</p>
       </div>
+
+      {/* Upload errors */}
+      {state.photos.some((p) => p.error) && (
+        <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-4 py-3">
+          {state.photos.filter((p) => p.error).length} photo(s) failed to upload.{" "}
+          {state.photos.find((p) => p.error)?.error}
+        </div>
+      )}
 
       {/* Drop zone */}
       <div
@@ -388,6 +399,38 @@ function StepPreview({
   state: WizardState;
   onBack: () => void;
 }) {
+  const [email, setEmail] = useState("");
+  const [emailSubmitted, setEmailSubmitted] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [submittingEmail, setSubmittingEmail] = useState(false);
+
+  async function captureEmail() {
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
+    setSubmittingEmail(true);
+    setEmailError(null);
+    try {
+      await fetch("/api/leads/wizard", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          address: state.address,
+          sessionId: state.sessionId,
+          estimatedValue: state.rentcastData?.estimatedValue,
+        }),
+      });
+      setEmailSubmitted(true);
+    } catch {
+      // Still allow proceeding
+      setEmailSubmitted(true);
+    } finally {
+      setSubmittingEmail(false);
+    }
+  }
+
   const readyPhotos = state.photos.filter((p) => !p.uploading && !p.error);
 
   return (
@@ -485,16 +528,41 @@ function StepPreview({
       )}
 
       {/* CTA */}
-      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6 text-center">
-        <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-3" />
-        <p className="font-semibold text-foreground mb-1">Ready to publish?</p>
-        <p className="text-sm text-gray-500 mb-4">
-          Create a free account to publish your listing, respond to leads, and track views.
+      <div className="bg-primary/5 border border-primary/20 rounded-xl p-6">
+        <CheckCircle2 className="w-8 h-8 text-primary mx-auto mb-3 block" />
+        <p className="font-semibold text-foreground mb-1 text-center">Ready to publish?</p>
+        <p className="text-sm text-gray-500 mb-4 text-center">
+          {emailSubmitted
+            ? "Account creation takes 30 seconds. No credit card needed."
+            : "Enter your email to save your progress and publish your listing."}
         </p>
-        <Button asChild size="lg" className="w-full">
-          <a href="/signup">Create your account — first week free</a>
-        </Button>
-        <p className="text-xs text-gray-400 mt-3">No credit card required to start</p>
+
+        {!emailSubmitted ? (
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => { setEmail(e.target.value); setEmailError(null); }}
+                onKeyDown={(e) => { if (e.key === "Enter") captureEmail(); }}
+                placeholder="your@email.com"
+                className="flex-1 rounded-lg border border-border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              />
+              <Button size="md" onClick={captureEmail} loading={submittingEmail} className="shrink-0">
+                Save
+              </Button>
+            </div>
+            {emailError && <p className="text-xs text-red-500">{emailError}</p>}
+            <p className="text-xs text-gray-400 text-center">No spam. Just your listing link when it&apos;s ready.</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-xs text-primary text-center font-medium">✓ Email saved!</p>
+            <Button asChild size="lg" className="w-full">
+              <a href={`/signup?email=${encodeURIComponent(email)}`}>Create account &amp; publish listing</a>
+            </Button>
+          </div>
+        )}
       </div>
 
       <Button variant="ghost" onClick={onBack} size="md" className="w-full">

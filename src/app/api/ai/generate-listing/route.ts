@@ -1,97 +1,134 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@/lib/supabase/server";
+import { logger } from "@/lib/utils/logger";
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY,
-});
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 export async function POST(request: Request) {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await request.json().catch(() => null);
+  if (!body?.listing_id) return NextResponse.json({ error: "Missing listing_id" }, { status: 400 });
+
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    listing_id,
+    property_type,
+    address,
+    city,
+    state,
+    bedrooms,
+    bathrooms,
+    sqft,
+    year_built,
+    garage_spaces,
+    hoa_monthly,
+    price,
+    amenities,
+    story,
+  } = body;
 
-  if (!user) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const ptLabel: Record<string, string> = {
+    single_family: "Single Family Home", condo: "Condo",
+    townhouse: "Townhouse", multi_family: "Multi-Family",
+    apartment: "Apartment", house: "House",
+  };
 
-  const body = await request.json();
-  const { listing_id, property_type, address, city, neighborhood, area_m2, bedrooms, bathrooms, parking, stratum, amenities, story, price } = body;
-
-  if (!listing_id) {
-    return NextResponse.json({ error: "Missing listing_id" }, { status: 400 });
-  }
-
-  const propertyDesc = [
-    property_type === "apartment" ? "Apartamento" : property_type === "house" ? "Casa" : "Inmueble",
-    `${area_m2}m²`,
-    bedrooms > 0 ? `${bedrooms} habitaciones` : null,
-    bathrooms > 0 ? `${bathrooms} baños` : null,
-    parking > 0 ? `${parking} parqueadero(s)` : null,
-    stratum ? `estrato ${stratum}` : null,
+  const specs = [
+    ptLabel[property_type] ?? "Home",
+    sqft ? `${Number(sqft).toLocaleString()} sqft` : null,
+    bedrooms ? `${bedrooms} bed` : null,
+    bathrooms ? `${bathrooms} bath` : null,
+    year_built ? `built ${year_built}` : null,
+    garage_spaces ? `${garage_spaces}-car garage` : null,
+    hoa_monthly ? `HOA $${hoa_monthly}/mo` : null,
   ].filter(Boolean).join(", ");
 
-  const amenitiesList = amenities?.length > 0 ? amenities.join(", ") : "No especificadas";
+  const priceStr = price ? `$${Number(price).toLocaleString()}` : "price TBD";
+  const location = [address, city, state].filter(Boolean).join(", ");
+  const amenitiesList = amenities?.length > 0 ? amenities.join(", ") : "not listed";
 
-  const prompt = `Eres un experto en marketing inmobiliario en Colombia. Escribe 3 descripciones profesionales y persuasivas para este inmueble. Cada descripción debe tener un tono diferente.
+  const prompt = `You are a top real estate copywriter in the US. Write 3 compelling property listing descriptions for this home.
 
-DATOS DEL INMUEBLE:
-- Tipo: ${propertyDesc}
-- Dirección: ${address}, ${neighborhood || city}, ${city}
-- Precio: $${Number(price).toLocaleString("es-CO")} COP
-- Amenidades: ${amenitiesList}
-- Historia del propietario: "${story}"
+PROPERTY:
+- ${specs}
+- Location: ${location}
+- Asking price: ${priceStr}
+- Amenities: ${amenitiesList}
+- Seller's story: "${story || "Not provided"}"
 
-INSTRUCCIONES:
-1. Descripción EMOCIONAL: enfócate en el estilo de vida, la sensación de vivir ahí, las emociones.
-2. Descripción TÉCNICA: destaca los datos concretos, la calidad, las características únicas.
-3. Descripción STORYTELLING: cuenta una historia breve sobre quién viviría aquí y por qué sería perfecto.
+WRITE 3 VERSIONS:
+1. EMOTIONAL — paint a picture of the lifestyle. Focus on feeling, community, and the joy of living here. Conversational and warm.
+2. PROFESSIONAL — MLS-quality copy. Lead with the strongest features, use precise language, include key specs naturally. Authoritative.
+3. SOCIAL — casual, punchy, shareable. Think TikTok caption meets Instagram bio. Short sentences. Energy. Hook in the first line.
 
-Cada descripción debe:
-- Tener entre 120-200 palabras
-- Incluir un título corto (máximo 10 palabras) antes de la descripción
-- Estar escrita en español colombiano natural
-- Terminar con una llamada a la acción breve
-- NO mencionar precios ni comisiones
-- NO usar emojis
+REQUIREMENTS for each:
+- 120–200 words (social can be 60–100)
+- Include a short title (max 8 words)
+- Written in American English
+- End with a subtle call-to-action
+- NO emojis, NO price mentions, NO commission mentions
+- Also provide: seoDescription (1 sentence, 150 chars max) and socialCaption (2-3 lines, Instagram-ready)
 
-Responde SOLO con JSON válido en este formato exacto:
+Respond ONLY with valid JSON:
 {
   "descriptions": [
-    {"title": "...", "body": "..."},
-    {"title": "...", "body": "..."},
-    {"title": "...", "body": "..."}
+    {
+      "type": "emotional",
+      "title": "...",
+      "body": "...",
+      "seoDescription": "...",
+      "socialCaption": "..."
+    },
+    {
+      "type": "professional",
+      "title": "...",
+      "body": "...",
+      "seoDescription": "...",
+      "socialCaption": "..."
+    },
+    {
+      "type": "social",
+      "title": "...",
+      "body": "...",
+      "seoDescription": "...",
+      "socialCaption": "..."
+    }
   ]
 }`;
 
   try {
+    logger.info("ai.generate-listing.start", { listingId: listing_id, userId: user.id });
+
     const message = await anthropic.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 2000,
       messages: [{ role: "user", content: prompt }],
     });
 
     const text = message.content[0].type === "text" ? message.content[0].text : "";
-
-    // Extract JSON from response
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) {
+      logger.error("ai.generate-listing.parse-error", { listingId: listing_id });
       return NextResponse.json({ error: "Invalid AI response" }, { status: 500 });
     }
 
     const parsed = JSON.parse(jsonMatch[0]);
+    const descriptions = parsed.descriptions;
 
-    // Save to listing
+    // Persist to DB
     await supabase
       .from("listings")
-      .update({ ai_descriptions: parsed.descriptions })
+      .update({ ai_descriptions: descriptions })
       .eq("id", listing_id)
       .eq("user_id", user.id);
 
-    return NextResponse.json(parsed);
+    logger.info("ai.generate-listing.success", { listingId: listing_id, count: descriptions.length });
+    return NextResponse.json({ descriptions });
   } catch (err) {
-    const message = err instanceof Error ? err.message : "AI generation failed";
-    return NextResponse.json({ error: message }, { status: 500 });
+    logger.error("ai.generate-listing.error", { listingId: listing_id, error: String(err) });
+    return NextResponse.json({ error: "AI generation failed" }, { status: 500 });
   }
 }

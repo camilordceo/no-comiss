@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
@@ -13,7 +14,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { formatCOP, getRelativeTime } from "@/lib/utils";
+import { formatUSD, getRelativeTime } from "@/lib/utils";
 import type { Listing } from "@/lib/types/database";
 
 export const metadata = { title: "Dashboard" };
@@ -137,6 +138,78 @@ export default async function DashboardPage() {
         })}
       </div>
 
+      {/* Onboarding checklist — shown when user has no active listings */}
+      {activeListings === 0 && (
+        <Card className="border-primary/20 bg-primary/3">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="font-semibold text-foreground">Get your first listing live</p>
+                <p className="text-xs text-gray-500 mt-0.5">Complete these steps to start receiving buyer leads.</p>
+              </div>
+              <span className="text-sm font-bold text-primary">
+                {[
+                  !!profile?.full_name,
+                  (listings?.length ?? 0) > 0,
+                  activeListings > 0,
+                ].filter(Boolean).length}/3
+              </span>
+            </div>
+            {/* Progress bar */}
+            <div className="h-1.5 bg-gray-100 rounded-full mb-4 overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{
+                  width: `${Math.round(
+                    ([!!profile?.full_name, (listings?.length ?? 0) > 0, activeListings > 0].filter(Boolean).length / 3) * 100
+                  )}%`,
+                }}
+              />
+            </div>
+            <ul className="space-y-2.5">
+              {[
+                {
+                  done: !!profile?.full_name,
+                  label: "Complete your profile",
+                  href: "/dashboard/settings",
+                  cta: "Go to settings",
+                },
+                {
+                  done: (listings?.length ?? 0) > 0,
+                  label: "Create your first listing",
+                  href: "/dashboard/listings/new",
+                  cta: "Create listing",
+                },
+                {
+                  done: activeListings > 0,
+                  label: "Publish & go live",
+                  href: "/dashboard/listings",
+                  cta: "View listings",
+                },
+              ].map((step) => (
+                <li key={step.label} className="flex items-center gap-3">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${step.done ? "bg-primary" : "bg-gray-200"}`}>
+                    {step.done && (
+                      <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`text-sm flex-1 ${step.done ? "line-through text-gray-400" : "text-foreground"}`}>
+                    {step.label}
+                  </span>
+                  {!step.done && (
+                    <Link href={step.href} className="text-xs text-primary font-medium hover:underline shrink-0">
+                      {step.cta} →
+                    </Link>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-5">
         {/* My listings */}
         <Card>
@@ -190,7 +263,7 @@ export default async function DashboardPage() {
                         </p>
                         <p className="text-xs text-gray-400 truncate">{listing.address}</p>
                         <p className="text-xs text-primary font-medium mt-0.5">
-                          {formatCOP(listing.price)}
+                          {formatUSD(listing.price)}
                         </p>
                       </div>
                       <Badge variant={STATUS_VARIANTS[listing.status]}>

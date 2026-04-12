@@ -13,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { InterestForm } from "@/components/marketing/interest-form";
+import { HeroCalculator } from "@/components/marketing/hero-calculator";
 
 const steps = [
   {
@@ -230,9 +231,12 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Interest form */}
-            <div className="bg-white rounded-[12px] border border-border shadow-sm p-6 lg:sticky lg:top-24">
-              <InterestForm variant="hero" />
+            {/* Hero calculator */}
+            <div className="lg:sticky lg:top-24 space-y-4">
+              <HeroCalculator />
+              <div className="bg-white rounded-[12px] border border-border shadow-sm p-5">
+                <InterestForm variant="hero" />
+              </div>
             </div>
           </div>
         </div>

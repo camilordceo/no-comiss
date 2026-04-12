@@ -21,23 +21,28 @@ export function LoginForm() {
     setLoading(true);
     setError("");
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      if (error.message === "Invalid login credentials") {
-        setError("Incorrect email or password. Please try again.");
-      } else if (error.message.includes("Email not confirmed")) {
-        setError("Please check your email and confirm your account first.");
-      } else {
-        setError("Something went wrong. Please try again.");
+      if (error) {
+        if (error.message === "Invalid login credentials") {
+          setError("Incorrect email or password. Please try again.");
+        } else if (error.message.includes("Email not confirmed")) {
+          setError("Please check your email and confirm your account first.");
+        } else {
+          setError("Something went wrong. Please try again.");
+        }
+        return;
       }
-      setLoading(false);
-      return;
-    }
 
-    router.push("/dashboard");
-    router.refresh();
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

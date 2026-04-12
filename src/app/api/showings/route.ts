@@ -26,7 +26,6 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = await createClient();
   const adminSupabase = await createServiceClient();
 
   // Get listing + seller info
@@ -81,12 +80,6 @@ export async function POST(request: Request) {
 
     if (calendarConn?.google_refresh_token) {
       const accessToken = await getValidAccessToken(calendarConn);
-
-      const scheduledDate = new Date(scheduled_at);
-      const dateStr = scheduledDate.toLocaleDateString("es-CO", {
-        weekday: "long", day: "numeric", month: "long", year: "numeric",
-        hour: "2-digit", minute: "2-digit",
-      });
 
       const result = await createCalendarEvent({
         accessToken,
@@ -167,7 +160,7 @@ export async function GET(request: Request) {
     .eq("seller_id", user.id)
     .order("scheduled_at", { ascending: true });
 
-  if (status) query = query.eq("status", status);
+  if (status) query = query.eq("status", status as "pending" | "confirmed" | "completed" | "cancelled" | "no_show");
   if (listing_id) query = query.eq("listing_id", listing_id);
 
   const { data, error: qErr } = await query;

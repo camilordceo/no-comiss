@@ -1,44 +1,49 @@
 import { NextResponse } from "next/server";
+import { lookupProperty, getAVM } from "@/lib/services/rentcast";
+import { logger } from "@/lib/utils/logger";
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const address = searchParams.get("address");
-  const city = searchParams.get("city");
 
-  if (!address || !city) {
-    return NextResponse.json({ error: "Missing params" }, { status: 400 });
-  }
-
-  const apiKey = process.env.RENTCAST_API_KEY;
-  if (!apiKey) {
-    // Return mock data if no API key
-    return NextResponse.json({
-      mock: true,
-      price_estimate: null,
-      comps: [],
-      market_stats: null,
-    });
+  if (!address) {
+    return NextResponse.json({ error: "Missing address" }, { status: 400 });
   }
 
   try {
-    const fullAddress = `${address}, ${city}, Colombia`;
-    const res = await fetch(
-      `https://api.rentcast.io/v1/properties?address=${encodeURIComponent(fullAddress)}`,
-      {
-        headers: {
-          "X-Api-Key": apiKey,
-          Accept: "application/json",
-        },
-      }
-    );
+    logger.info("api.rentcast.lookup", { address });
 
-    if (!res.ok) {
-      return NextResponse.json({ error: "RentCast error", status: res.status }, { status: 502 });
+    const [property, avm] = await Promise.all([
+      lookupProperty(address),
+      getAVM(address),
+    ]);
+
+    if (!property) {
+      return NextResponse.json({ property: null, avm: null });
     }
 
-    const data = await res.json();
-    return NextResponse.json(data);
-  } catch {
-    return NextResponse.json({ error: "Failed to fetch from RentCast" }, { status: 500 });
+    // Merge AVM data into the property result
+    const merged = {
+      formattedAddress: property.formattedAddress,
+      city: property.city,
+      state: property.state,
+      zipCode: property.zipCode,
+      bedrooms: property.bedrooms ?? null,
+      bathrooms: property.bathrooms ?? null,
+      squareFootage: property.squareFootage ?? null,
+      lotSize: property.lotSize ?? null,
+      yearBuilt: property.yearBuilt ?? null,
+      stories: property.stories ?? null,
+      garage: property.garage ?? null,
+      estimatedValue: avm?.price ?? null,
+      priceRangeLow: avm?.priceRangeLow ?? null,
+      priceRangeHigh: avm?.priceRangeHigh ?? null,
+      comparables: avm?.comparables ?? [],
+    };
+
+    return NextResponse.json({ property: merged });
+  } catch (err) {
+    logger.error("api.rentcast.error", { address, error: String(err) });
+    return NextResponse.json({ property: null, error: "Lookup failed" });
   }
 }

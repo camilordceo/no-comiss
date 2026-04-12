@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Calendar, Video, MapPin, Clock, User } from "lucide-react";
@@ -84,20 +85,20 @@ export default async function VisitasPage() {
           <div className="space-y-1">
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <User className="w-3 h-3" />
-              <span className="font-medium text-foreground">{showing.buyer_name as string}</span>
-              {showing.buyer_phone && <span>· {showing.buyer_phone as string}</span>}
+              <span className="font-medium text-foreground">{String(showing.buyer_name ?? "")}</span>
+              {!!showing.buyer_phone && <span>· {String(showing.buyer_phone)}</span>}
             </div>
             <div className="flex items-center gap-1.5 text-xs text-gray-500">
               <Clock className="w-3 h-3" />
               <span>{formatDate(showing.scheduled_at as string)}</span>
             </div>
-            {listing?.address && (
+            {!!listing?.address && (
               <div className="flex items-center gap-1.5 text-xs text-gray-500">
                 <MapPin className="w-3 h-3" />
-                <span className="truncate">{listing.address as string}</span>
+                <span className="truncate">{String(listing.address)}</span>
               </div>
             )}
-            {showing.google_meet_link && (
+            {!!showing.google_meet_link && (
               <a
                 href={showing.google_meet_link as string}
                 target="_blank"

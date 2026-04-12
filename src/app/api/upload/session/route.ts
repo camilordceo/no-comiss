@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid file type" }, { status: 400 });
     }
 
-    const maxSize = 20 * 1024 * 1024; // 20MB
+    const maxSize = 10 * 1024 * 1024; // 10MB (matches listing-photos bucket limit)
     if (file.size > maxSize) {
       return NextResponse.json({ error: "File too large (max 20MB)" }, { status: 400 });
     }
@@ -43,7 +43,7 @@ export async function POST(request: Request) {
 
     if (error) {
       console.error("session upload error:", error.message);
-      return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+      return NextResponse.json({ error: error.message ?? "Upload failed" }, { status: 500 });
     }
 
     const { data: urlData } = supabase.storage

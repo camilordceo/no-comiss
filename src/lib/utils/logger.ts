@@ -1,44 +1,80 @@
 /**
- * Structured logger for NoComiss.
- * Dev: colored console output  |  Prod: JSON lines (ready for log aggregation)
+ * Structured logging used everywhere across the app.
+ * - Dev: human-readable colored output.
+ * - Prod: JSON lines, ready to ship to an aggregator (Datadog, Logtail, etc.).
  */
 
 type LogLevel = "debug" | "info" | "warn" | "error";
-type LogMeta = Record<string, unknown>;
 
-const COLORS: Record<LogLevel, string> = {
-  debug: "\x1b[90m",   // gray
-  info:  "\x1b[36m",   // cyan
-  warn:  "\x1b[33m",   // yellow
-  error: "\x1b[31m",   // red
+type LogContext = Record<string, unknown> | undefined;
+
+const isProd = process.env.NODE_ENV === "production";
+const isBrowser = typeof window !== "undefined";
+
+const LEVEL_COLORS: Record<LogLevel, string> = {
+  debug: "\x1b[90m",
+  info: "\x1b[36m",
+  warn: "\x1b[33m",
+  error: "\x1b[31m",
 };
 const RESET = "\x1b[0m";
+const DIM = "\x1b[2m";
+const BOLD = "\x1b[1m";
 
-const IS_PROD = process.env.NODE_ENV === "production";
+function safeStringify(value: unknown): string {
+  try {
+    return JSON.stringify(value, (_key, val) => {
+      if (val instanceof Error) {
+        return { name: val.name, message: val.message, stack: val.stack };
+      }
+      return val;
+    });
+  } catch {
+    return "[unserializable]";
+  }
+}
 
-function log(level: LogLevel, event: string, meta?: LogMeta) {
-  const ts = new Date().toISOString();
+function emit(level: LogLevel, event: string, context?: LogContext): void {
+  const timestamp = new Date().toISOString();
+  const payload = {
+    timestamp,
+    level,
+    event,
+    ...(context ?? {}),
+  };
 
-  if (IS_PROD) {
-    // Structured JSON — parse-friendly for Vercel/Datadog/etc.
-    process.stdout.write(
-      JSON.stringify({ ts, level, event, ...meta }) + "\n"
-    );
+  if (isProd) {
+    // Structured JSON for production aggregation.
+    const output = safeStringify(payload);
+    if (level === "error") console.error(output);
+    else if (level === "warn") console.warn(output);
+    else console.log(output);
     return;
   }
 
-  // Dev: human-readable colored output
-  const color = COLORS[level];
-  const label = level.toUpperCase().padEnd(5);
-  const metaStr = meta && Object.keys(meta).length
-    ? " " + JSON.stringify(meta)
-    : "";
-  console.log(`${color}[${label}]${RESET} ${ts} ${event}${metaStr}`);
+  // Pretty dev output.
+  if (isBrowser) {
+    const prefix = `%c[${level.toUpperCase()}] %c${event}`;
+    const levelColor = level === "error" ? "#dc2626" : level === "warn" ? "#f59e0b" : level === "info" ? "#40d99d" : "#6b7280";
+    const fn = level === "error" ? console.error : level === "warn" ? console.warn : console.log;
+    fn(prefix, `color: ${levelColor}; font-weight: bold`, "color: #1a1a1a; font-weight: 500", context ?? "");
+    return;
+  }
+
+  const color = LEVEL_COLORS[level];
+  const head = `${DIM}${timestamp}${RESET} ${color}${BOLD}${level.toUpperCase().padEnd(5)}${RESET} ${event}`;
+  const tail = context ? ` ${DIM}${safeStringify(context)}${RESET}` : "";
+  const line = head + tail;
+  if (level === "error") console.error(line);
+  else if (level === "warn") console.warn(line);
+  else console.log(line);
 }
 
 export const logger = {
-  debug: (event: string, meta?: LogMeta) => log("debug", event, meta),
-  info:  (event: string, meta?: LogMeta) => log("info",  event, meta),
-  warn:  (event: string, meta?: LogMeta) => log("warn",  event, meta),
-  error: (event: string, meta?: LogMeta) => log("error", event, meta),
+  debug: (event: string, context?: LogContext): void => emit("debug", event, context),
+  info: (event: string, context?: LogContext): void => emit("info", event, context),
+  warn: (event: string, context?: LogContext): void => emit("warn", event, context),
+  error: (event: string, context?: LogContext): void => emit("error", event, context),
 };
+
+export type Logger = typeof logger;

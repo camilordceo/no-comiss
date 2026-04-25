@@ -2,142 +2,164 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail, User } from "lucide-react";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SocialAuth } from "@/components/auth/social-auth";
+import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { signupSchema, type SignupInput } from "@/lib/utils/validation";
+import { logger } from "@/lib/utils/logger";
 
 export function SignupForm() {
   const router = useRouter();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [emailSent, setEmailSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters.");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<SignupInput>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+  });
 
-    setLoading(true);
-    setError("");
-
+  async function onSubmit(values: SignupInput) {
+    setSubmitting(true);
+    logger.info("auth.signup_attempt", { email: values.email });
     try {
       const supabase = createClient();
       const { data, error } = await supabase.auth.signUp({
-        email,
-        password,
+        email: values.email,
+        password: values.password,
         options: {
-          data: { full_name: fullName },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            full_name: values.fullName,
+            nombre: values.fullName,
+            source: "nocomiss",
+          },
+          emailRedirectTo:
+            (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin) + "/api/auth/callback",
         },
       });
 
       if (error) {
-        if (error.message.includes("already registered")) {
-          setError("An account with this email already exists. Try signing in.");
-        } else {
-          setError("Something went wrong creating your account. Please try again.");
-        }
+        logger.warn("auth.signup_failed", { email: values.email, message: error.message });
+        toast.error(error.message);
         return;
       }
 
-      if (data.session) {
-        // Email confirmation disabled — logged in immediately
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        // Email confirmation required
-        setEmailSent(true);
+      logger.info("auth.signup_success", { userId: data.user?.id });
+
+      // If email confirmation is enabled, no session yet — surface a helpful message.
+      if (!data.session) {
+        toast.success("Check your email to confirm your account.");
+        router.push("/login");
+        return;
       }
-    } catch {
-      setError("Something went wrong. Please try again.");
+
+      toast.success("Welcome to NoComiss!");
+      router.push("/dashboard");
+      router.refresh();
+    } catch (err) {
+      logger.error("auth.signup_exception", { error: err });
+      toast.error("Something went wrong. Please try again.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
-  if (emailSent) {
-    return (
-      <div className="text-center space-y-4 py-4">
-        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-          <Mail className="w-6 h-6 text-primary" />
-        </div>
-        <div>
-          <h3 className="font-semibold text-foreground mb-1">Check your email</h3>
-          <p className="text-sm text-gray-500">
-            We sent a confirmation link to <span className="font-medium text-foreground">{email}</span>.
-            Click it to activate your account and get started.
-          </p>
-        </div>
-        <p className="text-xs text-gray-400">
-          Didn&apos;t receive it? Check your spam folder.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <SocialAuth />
-      <form onSubmit={handleSubmit} className="space-y-3">
-      <Input
-        label="Full name"
-        type="text"
-        placeholder="Jane Smith"
-        value={fullName}
-        onChange={(e) => setFullName(e.target.value)}
-        prefix={<User className="w-4 h-4" />}
-        required
-        autoComplete="name"
-        autoFocus
-      />
-      <Input
-        label="Email address"
-        type="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        prefix={<Mail className="w-4 h-4" />}
-        required
-        autoComplete="email"
-      />
-      <Input
-        label="Password"
-        type={showPassword ? "text" : "password"}
-        placeholder="Minimum 8 characters"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        suffix={
-          <button
-            type="button"
-            onClick={() => setShowPassword(!showPassword)}
-            className="pointer-events-auto text-gray-400 hover:text-gray-600 transition-colors"
-            aria-label={showPassword ? "Hide" : "Show"}
-          >
-            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-          </button>
-        }
-        required
-        autoComplete="new-password"
-      />
+    <div className="rounded-lg border border-brand-light-gray bg-white p-8 shadow-sm">
+      <div className="mb-6 space-y-1">
+        <h1 className="text-2xl font-medium tracking-tight text-brand-black">Get started</h1>
+        <p className="text-sm text-brand-muted">List your home in minutes. Save thousands.</p>
+      </div>
 
-      {error && (
-        <div className="rounded-[8px] bg-red-50 border border-red-100 px-3 py-2.5">
-          <p className="text-sm text-red-600">{error}</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="fullName">Full name</Label>
+          <Input
+            id="fullName"
+            autoComplete="name"
+            placeholder="Jane Homeowner"
+            aria-invalid={!!errors.fullName}
+            {...register("fullName")}
+          />
+          {errors.fullName ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.fullName.message}
+            </p>
+          ) : null}
         </div>
-      )}
 
-      <Button type="submit" size="md" className="w-full" loading={loading}>
-        Create free account
-      </Button>
-    </form>
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-invalid={!!errors.email}
+            {...register("email")}
+          />
+          {errors.email ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.email.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.password.message}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Input
+            id="confirmPassword"
+            type="password"
+            autoComplete="new-password"
+            placeholder="Re-enter your password"
+            aria-invalid={!!errors.confirmPassword}
+            {...register("confirmPassword")}
+          />
+          {errors.confirmPassword ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.confirmPassword.message}
+            </p>
+          ) : null}
+        </div>
+
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {submitting ? "Creating account..." : "Create account"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-brand-muted">
+        Already have an account?{" "}
+        <Link href="/login" className="font-medium text-brand-teal hover:underline">
+          Log in
+        </Link>
+      </p>
     </div>
   );
 }

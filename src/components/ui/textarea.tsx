@@ -1,42 +1,25 @@
 import * as React from "react";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/cn";
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string;
-  error?: string;
-  hint?: string;
-}
+export type TextareaProps = React.TextareaHTMLAttributes<HTMLTextAreaElement>;
 
 const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ className, label, error, hint, id, ...props }, ref) => {
-    const textareaId = id ?? label?.toLowerCase().replace(/\s+/g, "-");
-
+  ({ className, ...props }, ref) => {
     return (
-      <div className="flex flex-col gap-1.5 w-full">
-        {label && (
-          <label htmlFor={textareaId} className="text-sm font-medium text-foreground">
-            {label}
-          </label>
+      <textarea
+        ref={ref}
+        className={cn(
+          "flex min-h-24 w-full rounded-md border border-brand-light-gray bg-white px-3 py-2 text-sm text-brand-black placeholder:text-brand-muted",
+          "transition-all duration-200",
+          "focus-visible:outline-none focus-visible:border-brand-teal focus-visible:ring-2 focus-visible:ring-brand-teal/20",
+          "disabled:cursor-not-allowed disabled:opacity-50",
+          "resize-vertical",
+          className,
         )}
-        <textarea
-          id={textareaId}
-          className={cn(
-            "w-full rounded-[8px] border border-border bg-surface px-3 py-2.5 text-sm text-foreground placeholder:text-gray-400",
-            "min-h-[100px] resize-y",
-            "transition-colors duration-150",
-            "focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary focus:bg-white",
-            "disabled:opacity-50 disabled:cursor-not-allowed",
-            error && "border-red-400 focus:ring-red-400",
-            className
-          )}
-          ref={ref}
-          {...props}
-        />
-        {error && <p className="text-xs text-red-500">{error}</p>}
-        {hint && !error && <p className="text-xs text-gray-500">{hint}</p>}
-      </div>
+        {...props}
+      />
     );
-  }
+  },
 );
 Textarea.displayName = "Textarea";
 

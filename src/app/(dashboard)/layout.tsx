@@ -1,44 +1,35 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { DashboardSidebar } from "@/components/dashboard/sidebar";
+import { requireDashboardSession } from "@/lib/hooks/use-session";
+import { Sidebar } from "@/components/layout/sidebar";
+import { BottomNav } from "@/components/layout/bottom-nav";
+import { Header } from "@/components/layout/header";
 
-export default async function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export const dynamic = "force-dynamic";
 
-  if (!user) {
-    redirect("/login");
-  }
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, avatar_url")
-    .eq("id", user.id)
-    .single();
+export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const session = await requireDashboardSession();
+  const property = session.primaryProperty;
+  const propertyHref =
+    property?.listing_status === "onboarding"
+      ? `/dashboard/property/new?id=${property.id}`
+      : property
+        ? `/dashboard/property/${property.id}`
+        : null;
+  const photosHref = property ? `/dashboard/property/${property.id}/photos` : null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface">
-      {/* Sidebar — desktop only */}
-      <div className="hidden md:flex shrink-0">
-        <DashboardSidebar
-          user={{
-            email: user.email!,
-            full_name: profile?.full_name ?? undefined,
-            avatar_url: profile?.avatar_url ?? undefined,
-          }}
+    <div className="flex min-h-screen bg-brand-bg-alt">
+      <Sidebar propertyHref={propertyHref} photosHref={photosHref} />
+      <div className="flex flex-1 flex-col">
+        <Header
+          email={session.email}
+          name={session.profile.nombre ?? ""}
+          avatarUrl={session.profile.avatar_url}
         />
+        <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-12 md:pt-8 page-enter">
+          <div className="mx-auto w-full max-w-5xl">{children}</div>
+        </main>
       </div>
-
-      {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        {children}
-      </main>
+      <BottomNav propertyHref={propertyHref} photosHref={photosHref} />
     </div>
   );
 }

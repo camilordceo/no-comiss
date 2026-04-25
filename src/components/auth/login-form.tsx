@@ -1,102 +1,114 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Eye, EyeOff, Mail } from "lucide-react";
+import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SocialAuth } from "@/components/auth/social-auth";
+import { Label } from "@/components/ui/label";
 import { createClient } from "@/lib/supabase/client";
+import { loginSchema, type LoginInput } from "@/lib/utils/validation";
+import { logger } from "@/lib/utils/logger";
 
 export function LoginForm() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const params = useSearchParams();
+  const [submitting, setSubmitting] = useState(false);
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginInput>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { email: "", password: "" },
+  });
 
+  async function onSubmit(values: LoginInput) {
+    setSubmitting(true);
+    logger.info("auth.login_attempt", { email: values.email });
     try {
       const supabase = createClient();
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-
+      const { error } = await supabase.auth.signInWithPassword({
+        email: values.email,
+        password: values.password,
+      });
       if (error) {
-        if (error.message === "Invalid login credentials") {
-          setError("Incorrect email or password. Please try again.");
-        } else if (error.message.includes("Email not confirmed")) {
-          setError("Please check your email and confirm your account first.");
-        } else {
-          setError("Something went wrong. Please try again.");
-        }
+        logger.warn("auth.login_failed", { email: values.email, message: error.message });
+        toast.error(error.message);
         return;
       }
-
-      router.push("/dashboard");
+      logger.info("auth.login_success", { email: values.email });
+      const next = params.get("next") || "/dashboard";
+      router.push(next);
       router.refresh();
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      logger.error("auth.login_exception", { error: err });
+      toast.error("Something went wrong. Please try again.");
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   }
 
   return (
-    <div className="space-y-4">
-      <SocialAuth />
-      <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Email address"
-        type="email"
-        placeholder="you@example.com"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        prefix={<Mail className="w-4 h-4" />}
-        required
-        autoComplete="email"
-        autoFocus
-      />
-      <div className="space-y-1">
-        <Input
-          label="Password"
-          type={showPassword ? "text" : "password"}
-          placeholder="••••••••"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          suffix={
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              className="pointer-events-auto text-gray-400 hover:text-gray-600 transition-colors"
-              aria-label={showPassword ? "Hide password" : "Show password"}
-            >
-              {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            </button>
-          }
-          required
-          autoComplete="current-password"
-        />
-        <div className="flex justify-end">
-          <a href="/forgot-password" className="text-xs text-primary hover:underline">
-            Forgot password?
-          </a>
-        </div>
+    <div className="rounded-lg border border-brand-light-gray bg-white p-8 shadow-sm">
+      <div className="mb-6 space-y-1">
+        <h1 className="text-2xl font-medium tracking-tight text-brand-black">Welcome back</h1>
+        <p className="text-sm text-brand-muted">Log in to manage your listing.</p>
       </div>
 
-      {error && (
-        <div className="rounded-[8px] bg-red-50 border border-red-100 px-3 py-2.5">
-          <p className="text-sm text-red-600">{error}</p>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="email">Email</Label>
+          <Input
+            id="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            aria-invalid={!!errors.email}
+            {...register("email")}
+          />
+          {errors.email ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.email.message}
+            </p>
+          ) : null}
         </div>
-      )}
 
-      <Button type="submit" size="md" className="w-full" loading={loading}>
-        Sign in
-      </Button>
-    </form>
+        <div className="space-y-2">
+          <Label htmlFor="password">Password</Label>
+          <Input
+            id="password"
+            type="password"
+            autoComplete="current-password"
+            placeholder="••••••••"
+            aria-invalid={!!errors.password}
+            {...register("password")}
+          />
+          {errors.password ? (
+            <p role="alert" className="text-xs text-error">
+              {errors.password.message}
+            </p>
+          ) : null}
+        </div>
+
+        <Button type="submit" className="w-full" disabled={submitting}>
+          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+          {submitting ? "Logging in..." : "Log in"}
+        </Button>
+      </form>
+
+      <p className="mt-6 text-center text-sm text-brand-muted">
+        New to NoComiss?{" "}
+        <Link href="/signup" className="font-medium text-brand-teal hover:underline">
+          Create an account
+        </Link>
+      </p>
     </div>
   );
 }

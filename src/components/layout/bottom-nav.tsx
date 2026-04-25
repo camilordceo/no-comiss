@@ -15,11 +15,10 @@ export function BottomNav({ propertyHref, photosHref }: BottomNavProps) {
   const items = [
     { label: "Home", href: "/dashboard", icon: LayoutDashboard, active: pathname === "/dashboard" },
     {
-      label: "Property",
+      label: "Listing",
       href: propertyHref ?? "/dashboard/property/new",
       icon: Home,
-      active:
-        pathname.startsWith("/dashboard/property") && !pathname.includes("/photos"),
+      active: pathname.startsWith("/dashboard/property") && !pathname.includes("/photos"),
       disabled: !propertyHref,
     },
     {
@@ -39,7 +38,7 @@ export function BottomNav({ propertyHref, photosHref }: BottomNavProps) {
   return (
     <nav
       aria-label="Primary"
-      className="fixed bottom-0 left-0 right-0 z-40 border-t border-brand-light-gray bg-white md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t border-brand-light-gray bg-white lg:hidden"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
       <ul className="grid grid-cols-4">

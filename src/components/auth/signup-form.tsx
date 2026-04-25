@@ -3,17 +3,31 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Check, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { createClient } from "@/lib/supabase/client";
 import { signupSchema, type SignupInput } from "@/lib/utils/validation";
 import { logger } from "@/lib/utils/logger";
+import { cn } from "@/lib/utils/cn";
+
+interface PasswordRule {
+  label: string;
+  test: (pwd: string) => boolean;
+}
+
+const PASSWORD_RULES: PasswordRule[] = [
+  { label: "At least 8 characters", test: (p) => p.length >= 8 },
+  { label: "An uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { label: "A lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { label: "A number", test: (p) => /\d/.test(p) },
+];
 
 export function SignupForm() {
   const router = useRouter();
@@ -22,11 +36,21 @@ export function SignupForm() {
   const {
     register,
     handleSubmit,
+    watch,
+    control,
     formState: { errors },
   } = useForm<SignupInput>({
     resolver: zodResolver(signupSchema),
-    defaultValues: { fullName: "", email: "", password: "", confirmPassword: "" },
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      terms: false as unknown as true,
+    },
   });
+
+  const password = watch("password") ?? "";
 
   async function onSubmit(values: SignupInput) {
     setSubmitting(true);
@@ -55,7 +79,6 @@ export function SignupForm() {
 
       logger.info("auth.signup_success", { userId: data.user?.id });
 
-      // If email confirmation is enabled, no session yet — surface a helpful message.
       if (!data.session) {
         toast.success("Check your email to confirm your account.");
         router.push("/login");
@@ -124,11 +147,27 @@ export function SignupForm() {
             aria-invalid={!!errors.password}
             {...register("password")}
           />
-          {errors.password ? (
-            <p role="alert" className="text-xs text-error">
-              {errors.password.message}
-            </p>
-          ) : null}
+          <ul className="mt-2 grid gap-1 text-xs">
+            {PASSWORD_RULES.map((rule) => {
+              const ok = rule.test(password);
+              return (
+                <li
+                  key={rule.label}
+                  className={cn(
+                    "flex items-center gap-1.5",
+                    ok ? "text-brand-teal" : "text-brand-muted",
+                  )}
+                >
+                  <Check
+                    className={cn("h-3 w-3", ok ? "opacity-100" : "opacity-30")}
+                    strokeWidth={3}
+                    aria-hidden
+                  />
+                  {rule.label}
+                </li>
+              );
+            })}
+          </ul>
         </div>
 
         <div className="space-y-2">
@@ -147,6 +186,41 @@ export function SignupForm() {
             </p>
           ) : null}
         </div>
+
+        <Controller
+          control={control}
+          name="terms"
+          render={({ field }) => (
+            <div className="flex items-start gap-3 pt-1">
+              <Checkbox
+                id="terms"
+                checked={!!field.value}
+                onCheckedChange={(checked) => field.onChange(checked === true)}
+                onBlur={field.onBlur}
+                aria-invalid={!!errors.terms}
+                className="mt-0.5"
+              />
+              <div className="space-y-1">
+                <Label htmlFor="terms" className="font-normal leading-snug">
+                  I agree to the{" "}
+                  <Link href="/terms" className="font-medium text-brand-teal hover:underline">
+                    Terms of Service
+                  </Link>{" "}
+                  and{" "}
+                  <Link href="/privacy" className="font-medium text-brand-teal hover:underline">
+                    Privacy Policy
+                  </Link>
+                  .
+                </Label>
+                {errors.terms ? (
+                  <p role="alert" className="text-xs text-error">
+                    {errors.terms.message}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          )}
+        />
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}

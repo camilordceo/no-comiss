@@ -8,12 +8,22 @@ export const loginSchema = z.object({
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
+const strongPassword = z
+  .string()
+  .min(8, "At least 8 characters")
+  .regex(/[a-z]/, "Add a lowercase letter")
+  .regex(/[A-Z]/, "Add an uppercase letter")
+  .regex(/\d/, "Add a number");
+
 export const signupSchema = z
   .object({
     fullName: z.string().trim().min(2, "Tell us your full name"),
     email: z.string().trim().toLowerCase().email("Enter a valid email"),
-    password: z.string().min(8, "At least 8 characters"),
+    password: strongPassword,
     confirmPassword: z.string().min(8, "Confirm your password"),
+    terms: z.literal(true, {
+      errorMap: () => ({ message: "You must accept the terms to continue" }),
+    }),
   })
   .refine((d) => d.password === d.confirmPassword, {
     path: ["confirmPassword"],

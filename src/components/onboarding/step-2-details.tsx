@@ -10,6 +10,7 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Select,
   SelectTrigger,
@@ -52,6 +53,8 @@ export function StepDetails({ property }: StepDetailsProps) {
   });
 
   const tipoInmuebleValue = watch("tipo_inmueble");
+  const precioValue = watch("precio");
+  const hoaValue = watch("hoa_monthly");
 
   async function onSubmit(values: DetailsInput) {
     setSubmitting(true);
@@ -116,19 +119,33 @@ export function StepDetails({ property }: StepDetailsProps) {
           <NumberField id="year_built" label="Year built (optional)" min={1700} reg={register("year_built")} error={errors.year_built?.message} />
           <NumberField id="stories" label="Stories" min={1} max={10} reg={register("stories")} error={errors.stories?.message} />
           <NumberField id="garage_spaces" label="Garage spaces" min={0} reg={register("garage_spaces")} error={errors.garage_spaces?.message} />
-          <NumberField id="hoa_monthly" label="HOA $/month (optional)" min={0} reg={register("hoa_monthly")} error={errors.hoa_monthly?.message} />
+          <div className="space-y-2">
+            <Label htmlFor="hoa_monthly">HOA $/month (optional)</Label>
+            <CurrencyInput
+              id="hoa_monthly"
+              value={hoaValue ?? null}
+              onChange={(v) =>
+                setValue("hoa_monthly", v as DetailsInput["hoa_monthly"], { shouldValidate: true })
+              }
+              placeholder="0"
+              aria-invalid={!!errors.hoa_monthly}
+            />
+            {errors.hoa_monthly ? (
+              <p className="text-xs text-error">{errors.hoa_monthly.message}</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="precio">Asking price (USD)</Label>
-          <Input
+          <CurrencyInput
             id="precio"
-            type="number"
-            inputMode="decimal"
-            min={1000}
-            placeholder="500000"
+            value={precioValue ?? null}
+            onChange={(v) =>
+              setValue("precio", (v ?? 0) as DetailsInput["precio"], { shouldValidate: true })
+            }
+            placeholder="500,000"
             aria-invalid={!!errors.precio}
-            {...register("precio")}
           />
           {errors.precio ? <p className="text-xs text-error">{errors.precio.message}</p> : null}
         </div>

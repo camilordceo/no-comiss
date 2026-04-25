@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { useForm, type UseFormRegisterReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Loader2, Save } from "lucide-react";
+import { Check, Loader2, Save } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import {
   Select,
   SelectTrigger,
@@ -23,6 +24,7 @@ import {
   US_STATES,
   PROPERTY_TYPES,
 } from "@/lib/utils/validation";
+import { useAutoSave } from "@/lib/hooks/use-auto-save";
 import { logger } from "@/lib/utils/logger";
 import { z } from "zod";
 import type { Propiedad, PropertyType } from "@/lib/types/database";
@@ -67,27 +69,46 @@ export function DetailsForm({ property }: DetailsFormProps) {
 
   const stateValue = watch("state");
   const tipoValue = watch("tipo_inmueble");
+  const precioValue = watch("precio");
+  const hoaValue = watch("hoa_monthly");
+  const watched = watch();
+
+  async function persist(values: FormValues) {
+    const res = await fetch(`/api/property/${property.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(values),
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      logger.warn("details.save_failed", { status: res.status, data });
+      throw new Error("save_failed");
+    }
+    logger.info("details.saved", { propertyId: property.id });
+  }
+
+  const autoSaveStatus = useAutoSave({
+    values: watched,
+    enabled: isDirty,
+    delay: 1200,
+    save: async (v) => {
+      // Validate via the schema before pushing; skip auto-save on invalid drafts.
+      const parsed = formSchema.safeParse(v);
+      if (!parsed.success) return;
+      await persist(parsed.data);
+      router.refresh();
+    },
+  });
 
   async function onSubmit(values: FormValues) {
     setSubmitting(true);
     try {
-      const res = await fetch(`/api/property/${property.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      });
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({}));
-        logger.warn("details.save_failed", { status: res.status, data });
-        toast.error("Couldn't save changes.");
-        return;
-      }
-      logger.info("details.saved", { propertyId: property.id });
+      await persist(values);
       toast.success("Saved");
       router.refresh();
     } catch (err) {
       logger.error("details.save_exception", { error: err });
-      toast.error("Network error.");
+      toast.error("Couldn't save changes.");
     } finally {
       setSubmitting(false);
     }
@@ -177,17 +198,46 @@ export function DetailsForm({ property }: DetailsFormProps) {
           <NumberField id="year_built" label="Year built" min={1700} reg={register("year_built")} error={errors.year_built?.message} />
           <NumberField id="stories" label="Stories" min={1} max={10} reg={register("stories")} error={errors.stories?.message} />
           <NumberField id="garage_spaces" label="Garage spaces" min={0} reg={register("garage_spaces")} error={errors.garage_spaces?.message} />
-          <NumberField id="hoa_monthly" label="HOA $/month" min={0} reg={register("hoa_monthly")} error={errors.hoa_monthly?.message} />
+          <div className="space-y-2">
+            <Label htmlFor="hoa_monthly">HOA $/month</Label>
+            <CurrencyInput
+              id="hoa_monthly"
+              value={hoaValue ?? null}
+              onChange={(v) =>
+                setValue("hoa_monthly", v as FormValues["hoa_monthly"], {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+              placeholder="0"
+              aria-invalid={!!errors.hoa_monthly}
+            />
+            {errors.hoa_monthly ? (
+              <p className="text-xs text-error">{errors.hoa_monthly.message}</p>
+            ) : null}
+          </div>
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="precio">Asking price (USD)</Label>
-          <Input id="precio" type="number" min={1000} {...register("precio")} aria-invalid={!!errors.precio} />
+          <CurrencyInput
+            id="precio"
+            value={precioValue ?? null}
+            onChange={(v) =>
+              setValue("precio", (v ?? 0) as FormValues["precio"], {
+                shouldDirty: true,
+                shouldValidate: true,
+              })
+            }
+            placeholder="500,000"
+            aria-invalid={!!errors.precio}
+          />
           {errors.precio ? <p className="text-xs text-error">{errors.precio.message}</p> : null}
         </div>
       </section>
 
-      <div className="sticky bottom-4 flex justify-end gap-2">
+      <div className="sticky bottom-4 flex items-center justify-end gap-3">
+        <AutoSaveBadge status={autoSaveStatus} />
         <Button type="submit" disabled={submitting || !isDirty}>
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
           Save changes
@@ -195,6 +245,25 @@ export function DetailsForm({ property }: DetailsFormProps) {
       </div>
     </form>
   );
+}
+
+function AutoSaveBadge({ status }: { status: ReturnType<typeof useAutoSave> }) {
+  if (status === "idle") return null;
+  if (status === "saving") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-brand-muted">
+        <Loader2 className="h-3 w-3 animate-spin" /> Saving…
+      </span>
+    );
+  }
+  if (status === "saved") {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-xs text-brand-teal">
+        <Check className="h-3 w-3" strokeWidth={3} /> Saved
+      </span>
+    );
+  }
+  return <span className="text-xs text-error">Couldn&apos;t save</span>;
 }
 
 function NumberField({

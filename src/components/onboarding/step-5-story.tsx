@@ -13,7 +13,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { storySchema, type StoryInput } from "@/lib/utils/validation";
 import { logger } from "@/lib/utils/logger";
+import { cn } from "@/lib/utils/cn";
 import type { Propiedad } from "@/lib/types/database";
+
+function counterTone(length: number): string {
+  if (length >= 1000) return "text-error";
+  if (length >= 800) return "text-warning";
+  if (length >= 200) return "text-brand-teal";
+  return "text-brand-muted";
+}
 
 interface StepStoryProps {
   property: Propiedad;
@@ -34,6 +42,8 @@ export function StepStory({ property }: StepStoryProps) {
     register,
     handleSubmit,
     watch,
+    setValue,
+    getValues,
     formState: { errors },
   } = useForm<StoryInput>({
     resolver: zodResolver(storySchema),
@@ -45,6 +55,14 @@ export function StepStory({ property }: StepStoryProps) {
 
   const story = watch("seller_story") ?? "";
   const tagline = watch("description_short") ?? "";
+
+  function insertPrompt(prompt: string) {
+    const current = getValues("seller_story") ?? "";
+    const separator = current.trim().length > 0 ? "\n\n" : "";
+    setValue("seller_story", `${current}${separator}${prompt} `, {
+      shouldDirty: true,
+    });
+  }
 
   async function onSubmit(values: StoryInput) {
     setSubmitting(true);
@@ -103,12 +121,14 @@ export function StepStory({ property }: StepStoryProps) {
           <Label htmlFor="seller_story">Your story</Label>
           <div className="flex flex-wrap gap-2">
             {PROMPTS.map((p) => (
-              <span
+              <button
                 key={p}
-                className="rounded-full border border-brand-light-gray bg-brand-bg-alt px-3 py-1 text-xs text-brand-muted"
+                type="button"
+                onClick={() => insertPrompt(p)}
+                className="rounded-full border border-brand-light-gray bg-brand-bg-alt px-3 py-1 text-xs text-brand-muted transition-all duration-200 hover:border-brand-teal hover:bg-brand-mint/15 hover:text-brand-black"
               >
-                {p}
-              </span>
+                + {p}
+              </button>
             ))}
           </div>
           <Textarea
@@ -119,9 +139,11 @@ export function StepStory({ property }: StepStoryProps) {
             aria-invalid={!!errors.seller_story}
             {...register("seller_story")}
           />
-          <div className="flex justify-between text-xs text-brand-muted">
-            <span>Aim for 100–500 characters.</span>
-            <span>{story.length}/2000</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-brand-muted">Aim for 200–500 characters.</span>
+            <span className={cn("font-medium", counterTone(story.length))}>
+              {story.length}/2000
+            </span>
           </div>
           {errors.seller_story ? (
             <p className="text-xs text-error">{errors.seller_story.message}</p>

@@ -39,12 +39,15 @@ export async function POST(request: NextRequest) {
 
   const d = parsed.data;
   const slugBase = buildListingSlug(d.ubicacion, d.ciudad, d.tipo_negocio);
-  const slug = `${slugBase}-${Date.now().toString(36)}`;
+  const stamp = Date.now().toString(36);
+  const slug = `${slugBase}-${stamp}`;
+  const codigo = `RM-${stamp.toUpperCase()}`;
 
   const { data, error } = await supabase
     .from("propiedades")
     .insert({
       empresa_id: profile.empresa_id,
+      codigo,
       source: "rentmies",
       country: "CO",
       currency: "COP",

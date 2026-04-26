@@ -8,6 +8,6 @@ export function slugify(input: string): string {
     .slice(0, 80);
 }
 
-export function buildListingSlug(address: string, city: string, state: string): string {
-  return slugify(`${address}-${city}-${state}`);
+export function buildListingSlug(...parts: (string | null | undefined)[]): string {
+  return slugify(parts.filter(Boolean).join("-"));
 }

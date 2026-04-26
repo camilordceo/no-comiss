@@ -4,26 +4,28 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
         default:
-          "bg-brand-teal text-white hover:bg-brand-mint hover:text-brand-black shadow-sm",
+          "bg-brand-green text-white hover:bg-brand-green-dark hover:-translate-y-px hover:shadow-glow",
         secondary:
-          "bg-brand-medium-gray text-brand-black hover:bg-brand-light-gray",
+          "bg-surface-3 text-foreground border border-border hover:border-brand-green hover:text-white",
         outline:
-          "border border-brand-light-gray bg-white text-brand-black hover:border-brand-teal hover:text-brand-teal",
-        ghost: "text-brand-black hover:bg-brand-medium-gray",
-        link: "text-brand-teal underline-offset-4 hover:underline",
+          "bg-transparent text-foreground border border-border hover:border-brand-green hover:text-white",
+        ghost:
+          "text-muted-foreground hover:bg-surface-3 hover:text-foreground",
+        link:
+          "text-brand-green underline-offset-4 hover:underline px-0 h-auto",
         destructive:
-          "bg-error text-white hover:bg-error/90 shadow-sm",
+          "bg-error/15 text-error border border-error/40 hover:bg-error/25",
       },
       size: {
-        default: "h-11 px-5 py-2",
-        sm: "h-9 px-3 text-xs",
-        lg: "h-12 px-7 text-base",
-        icon: "h-11 w-11",
+        default: "h-10 px-4 py-2",
+        sm: "h-8 px-3 text-xs rounded-sm",
+        lg: "h-12 px-6 text-base",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {

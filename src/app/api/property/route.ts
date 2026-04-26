@@ -1,12 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { addressSchema } from "@/lib/utils/validation";
+import { listingSchema } from "@/lib/utils/validation";
 import { buildListingSlug } from "@/lib/utils/slugify";
 import { logger } from "@/lib/utils/logger";
 
-const createSchema = addressSchema;
-
-/** POST /api/property — create a draft listing for the seller's empresa. */
+/** POST /api/property — create a complete listing in one shot. */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -21,7 +19,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const parsed = createSchema.safeParse(body);
+  const parsed = listingSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "validation_failed", details: parsed.error.flatten() },
@@ -39,27 +37,30 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "empresa_missing" }, { status: 400 });
   }
 
-  const { address_line1, address_line2, ciudad, state, zip_code } = parsed.data;
-  const slugBase = buildListingSlug(address_line1, ciudad, state);
+  const d = parsed.data;
+  const slugBase = buildListingSlug(d.ubicacion, d.ciudad, d.tipo_negocio);
   const slug = `${slugBase}-${Date.now().toString(36)}`;
 
   const { data, error } = await supabase
     .from("propiedades")
     .insert({
       empresa_id: profile.empresa_id,
-      source: "nocomiss",
-      country: "US",
-      currency: "USD",
-      tipo_negocio: "venta",
-      address_line1,
-      address_line2: address_line2 || null,
-      ciudad,
-      state,
-      zip_code,
-      ubicacion: `${address_line1}, ${ciudad}, ${state} ${zip_code}`,
+      source: "rentmies",
+      country: "CO",
+      currency: "COP",
+      tipo_negocio: d.tipo_negocio,
+      tipo_inmueble: d.tipo_inmueble,
+      ciudad: d.ciudad,
+      ubicacion: d.ubicacion,
+      habitaciones: d.habitaciones,
+      banos: d.banos,
+      parqueaderos: d.parqueaderos,
+      sqft: d.area_m2,
+      precio: d.precio,
+      descripcion: d.descripcion,
       slug,
-      listing_status: "onboarding",
-      onboarding_step: 2,
+      listing_status: "draft",
+      onboarding_step: 0,
     })
     .select("*")
     .single();

@@ -18,17 +18,17 @@ export default function DashboardError({
 
   return (
     <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col items-center justify-center gap-4 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error/10">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error/15">
         <AlertTriangle className="h-5 w-5 text-error" aria-hidden />
       </div>
       <div>
-        <h1 className="text-xl font-medium text-brand-black">Something went wrong</h1>
-        <p className="mt-1 text-sm text-brand-muted">
-          We hit an unexpected error. Try again or head back to the dashboard.
+        <h1 className="text-xl font-semibold text-white">Algo salió mal</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Ocurrió un error inesperado. Inténtalo de nuevo o vuelve al inicio.
         </p>
       </div>
       <Button onClick={() => reset()} variant="outline">
-        <RotateCw className="h-4 w-4" /> Try again
+        <RotateCw className="h-4 w-4" /> Reintentar
       </Button>
     </div>
   );

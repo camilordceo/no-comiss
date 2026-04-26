@@ -52,15 +52,15 @@ export function ProfileSettingsForm({
         .eq("id", userId);
       if (error) {
         logger.warn("settings.profile_update_failed", { message: error.message });
-        toast.error("Couldn't save changes.");
+        toast.error("No se pudo guardar.");
         return;
       }
       logger.info("settings.profile_updated", { userId });
-      toast.success("Saved");
+      toast.success("Cambios guardados");
       router.refresh();
     } catch (err) {
       logger.error("settings.profile_exception", { error: err });
-      toast.error("Network error.");
+      toast.error("Error de red.");
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +72,7 @@ export function ProfileSettingsForm({
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("Avatar must be under 2MB");
+      toast.error("El avatar debe pesar menos de 2 MB");
       return;
     }
     setUploadingAvatar(true);
@@ -85,7 +85,7 @@ export function ProfileSettingsForm({
         .upload(path, file, { upsert: true, contentType: file.type });
       if (uploadErr) {
         logger.error("settings.avatar_upload_failed", { message: uploadErr.message });
-        toast.error("Couldn't upload avatar.");
+        toast.error("No se pudo subir el avatar.");
         return;
       }
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -95,12 +95,12 @@ export function ProfileSettingsForm({
         .eq("id", userId);
       if (updateErr) {
         logger.error("settings.avatar_save_failed", { message: updateErr.message });
-        toast.error("Couldn't save avatar.");
+        toast.error("No se pudo guardar el avatar.");
         return;
       }
       setAvatarUrl(data.publicUrl);
       logger.info("settings.avatar_updated", { userId });
-      toast.success("Avatar updated");
+      toast.success("Avatar actualizado");
       router.refresh();
     } catch (err) {
       logger.error("settings.avatar_exception", { error: err });
@@ -118,14 +118,14 @@ export function ProfileSettingsForm({
       .join("") || "U";
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      <section className="rounded-lg border border-brand-light-gray bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-medium text-brand-black">Avatar</h2>
-        <p className="mt-1 text-sm text-brand-muted">
-          PNG or JPG up to 2MB. Shown across NoComiss.
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+      <section className="rounded-lg border border-border bg-surface-3 p-5">
+        <h2 className="text-base font-semibold text-white">Avatar</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          PNG o JPG hasta 2 MB.
         </p>
         <div className="mt-4 flex items-center gap-4">
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-brand-light-gray bg-brand-bg-alt text-xl font-medium text-brand-black">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2 text-xl font-bold text-white">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -145,7 +145,7 @@ export function ProfileSettingsForm({
               ) : (
                 <Camera className="h-4 w-4" />
               )}
-              {uploadingAvatar ? "Uploading…" : "Upload new"}
+              {uploadingAvatar ? "Subiendo…" : "Subir nuevo"}
             </Button>
             <input
               ref={fileRef}
@@ -154,31 +154,35 @@ export function ProfileSettingsForm({
               className="sr-only"
               onChange={handleAvatarChange}
             />
-            <p className="text-xs text-brand-muted">JPG, PNG, or WebP · up to 2MB</p>
+            <p className="text-xs text-muted-foreground">JPG, PNG o WebP · Máx 2 MB</p>
           </div>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-lg border border-brand-light-gray bg-white p-6 shadow-sm">
-        <h2 className="text-lg font-medium text-brand-black">Profile</h2>
+      <section className="space-y-4 rounded-lg border border-border bg-surface-3 p-5">
+        <h2 className="text-base font-semibold text-white">Perfil</h2>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" value={email} disabled readOnly />
-          <p className="text-xs text-brand-muted">Contact support to change your email.</p>
+          <p className="text-xs text-muted-foreground">
+            Contacta soporte para cambiar tu email.
+          </p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="nombre">Full name</Label>
+          <Label htmlFor="nombre">Nombre completo</Label>
           <Input id="nombre" aria-invalid={!!errors.nombre} {...register("nombre")} />
-          {errors.nombre ? <p className="text-xs text-error">{errors.nombre.message}</p> : null}
+          {errors.nombre ? (
+            <p className="text-xs text-error">{errors.nombre.message}</p>
+          ) : null}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bio">Bio (optional)</Label>
+          <Label htmlFor="bio">Bio (opcional)</Label>
           <Input
             id="bio"
-            placeholder="Homeowner in Miami selling a 3BR ranch"
+            placeholder="Propietario en Bogotá, vendiendo apartamento en Chapinero"
             maxLength={500}
             {...register("bio")}
           />
@@ -187,8 +191,12 @@ export function ProfileSettingsForm({
 
       <div className="flex justify-end">
         <Button type="submit" disabled={submitting || !isDirty}>
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          Save changes
+          {submitting ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          Guardar cambios
         </Button>
       </div>
     </form>

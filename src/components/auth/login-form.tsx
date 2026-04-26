@@ -49,17 +49,17 @@ export function LoginForm() {
       router.refresh();
     } catch (err) {
       logger.error("auth.login_exception", { error: err });
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Algo salió mal. Inténtalo de nuevo.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="rounded-lg border border-brand-light-gray bg-white p-8 shadow-sm">
+    <div className="rounded-xl border border-border bg-surface-2 p-7 shadow-sm">
       <div className="mb-6 space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight text-brand-black">Welcome back</h1>
-        <p className="text-sm text-brand-muted">Log in to manage your listing.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Bienvenido</h1>
+        <p className="text-sm text-muted-foreground">Ingresa para administrar tus inmuebles.</p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -69,7 +69,7 @@ export function LoginForm() {
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="tu@email.com"
             aria-invalid={!!errors.email}
             {...register("email")}
           />
@@ -81,7 +81,7 @@ export function LoginForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Contraseña</Label>
           <Input
             id="password"
             type="password"
@@ -99,14 +99,14 @@ export function LoginForm() {
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {submitting ? "Logging in..." : "Log in"}
+          {submitting ? "Ingresando…" : "Ingresar"}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-brand-muted">
-        New to NoComiss?{" "}
-        <Link href="/signup" className="font-medium text-brand-teal hover:underline">
-          Create an account
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        ¿Aún no tienes cuenta?{" "}
+        <Link href="/signup" className="font-semibold text-brand-green hover:underline">
+          Crear cuenta
         </Link>
       </p>
     </div>

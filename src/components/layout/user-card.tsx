@@ -12,7 +12,13 @@ interface UserCardProps {
   showSettingsLink?: boolean;
 }
 
-export function UserCard({ name, email, avatarUrl, className, showSettingsLink = true }: UserCardProps) {
+export function UserCard({
+  name,
+  email,
+  avatarUrl,
+  className,
+  showSettingsLink = true,
+}: UserCardProps) {
   const initials =
     (name || email)
       .split(/[\s@]+/)
@@ -24,12 +30,12 @@ export function UserCard({ name, email, avatarUrl, className, showSettingsLink =
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 border-t border-brand-light-gray bg-white px-4 py-4",
+        "flex flex-col gap-3 border-t border-border bg-surface-2 px-4 py-4",
         className,
       )}
     >
       <div className="flex items-center gap-3">
-        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-brand-light-gray bg-brand-bg-alt text-xs font-medium text-brand-black">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-3 text-xs font-bold text-white">
           {avatarUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -38,29 +44,29 @@ export function UserCard({ name, email, avatarUrl, className, showSettingsLink =
           )}
         </div>
         <div className="min-w-0 flex-1">
-          <div className="truncate text-sm font-medium text-brand-black">
-            {name || "Welcome"}
+          <div className="truncate text-sm font-semibold text-white">
+            {name || "Bienvenido"}
           </div>
-          <div className="truncate text-xs text-brand-muted">{email}</div>
+          <div className="truncate text-xs text-muted-foreground">{email}</div>
         </div>
       </div>
       <div className="flex items-center gap-1">
         {showSettingsLink ? (
           <Link
             href="/dashboard/settings"
-            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-md text-xs font-medium text-brand-muted transition-all duration-200 hover:bg-brand-medium-gray hover:text-brand-black"
+            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all duration-150 hover:bg-surface-3 hover:text-white"
           >
             <Settings className="h-3.5 w-3.5" aria-hidden />
-            Settings
+            Config
           </Link>
         ) : null}
         <form action="/api/auth/signout" method="post" className="flex-1">
           <button
             type="submit"
-            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-md text-xs font-medium text-error transition-all duration-200 hover:bg-error/10"
+            className="inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-sm text-xs font-semibold uppercase tracking-wider text-error transition-all duration-150 hover:bg-error/15"
           >
             <LogOut className="h-3.5 w-3.5" aria-hidden />
-            Sign out
+            Salir
           </button>
         </form>
       </div>

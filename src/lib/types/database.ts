@@ -24,7 +24,12 @@ export type ListingStatus =
 
 export type MediaType = "photo" | "video" | "virtual_tour";
 
-export type PropertyType = "single_family" | "condo" | "townhouse" | "multi_family";
+/**
+ * `tipo_inmueble` is stored as a free-form string in the DB so it can hold both
+ * Colombia values (apartamento, casa, apartaestudio, local, oficina, bodega)
+ * and legacy US values (single_family, condo, townhouse, multi_family).
+ */
+export type PropertyType = string;
 
 export type Database = {
   __InternalSupabase: {

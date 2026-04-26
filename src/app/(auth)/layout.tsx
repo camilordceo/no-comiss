@@ -2,11 +2,14 @@ import Link from "next/link";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <main className="flex min-h-screen flex-col bg-brand-bg-alt">
-      <header className="border-b border-brand-light-gray bg-white">
+    <main className="flex min-h-screen flex-col bg-surface-1">
+      <header className="border-b border-border bg-surface-2/60 backdrop-blur">
         <div className="container flex h-16 items-center">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-brand-black">
-            No<span className="text-brand-teal">Comiss</span>
+          <Link href="/" className="flex items-center gap-2 text-base font-bold tracking-tight text-white">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-brand-green text-white">
+              R
+            </span>
+            Rentmies
           </Link>
         </div>
       </header>

@@ -6,16 +6,18 @@ export function Toaster() {
   return (
     <Sonner
       position="top-right"
-      richColors
+      theme="dark"
       closeButton
       toastOptions={{
         classNames: {
           toast:
-            "border border-brand-light-gray bg-white text-brand-black shadow-sm rounded-md font-sans",
-          title: "text-sm font-medium text-brand-black",
-          description: "text-sm text-brand-muted",
-          actionButton: "bg-brand-teal text-white",
-          cancelButton: "bg-brand-medium-gray text-brand-black",
+            "border border-border bg-surface-3 text-foreground shadow-md rounded-md font-sans",
+          title: "text-sm font-semibold text-white",
+          description: "text-sm text-muted-foreground",
+          actionButton: "bg-brand-green text-white",
+          cancelButton: "bg-surface-4 text-foreground",
+          success: "border-brand-green/50",
+          error: "border-error/50",
         },
       }}
     />

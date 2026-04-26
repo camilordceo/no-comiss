@@ -9,8 +9,13 @@ export default async function SettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-medium tracking-tight text-brand-black">Settings</h1>
-        <p className="mt-1 text-sm text-brand-muted">Manage your profile.</p>
+        <div className="label-section mb-2">Cuenta</div>
+        <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+          Configuración
+        </h1>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Administra tu perfil y avatar.
+        </p>
       </div>
 
       <ProfileSettingsForm

@@ -3,96 +3,80 @@ import { z } from "zod";
 /* ---------------- Auth ---------------- */
 
 export const loginSchema = z.object({
-  email: z.string().trim().toLowerCase().email("Enter a valid email"),
-  password: z.string().min(8, "At least 8 characters"),
+  email: z.string().trim().toLowerCase().email("Ingresa un email válido"),
+  password: z.string().min(8, "Mínimo 8 caracteres"),
 });
 export type LoginInput = z.infer<typeof loginSchema>;
 
 const strongPassword = z
   .string()
-  .min(8, "At least 8 characters")
-  .regex(/[a-z]/, "Add a lowercase letter")
-  .regex(/[A-Z]/, "Add an uppercase letter")
-  .regex(/\d/, "Add a number");
+  .min(8, "Mínimo 8 caracteres")
+  .regex(/[a-z]/, "Agrega una letra minúscula")
+  .regex(/[A-Z]/, "Agrega una letra mayúscula")
+  .regex(/\d/, "Agrega un número");
 
 export const signupSchema = z
   .object({
-    fullName: z.string().trim().min(2, "Tell us your full name"),
-    email: z.string().trim().toLowerCase().email("Enter a valid email"),
+    fullName: z.string().trim().min(2, "Cuéntanos tu nombre completo"),
+    email: z.string().trim().toLowerCase().email("Ingresa un email válido"),
     password: strongPassword,
-    confirmPassword: z.string().min(8, "Confirm your password"),
+    confirmPassword: z.string().min(8, "Confirma tu contraseña"),
     terms: z.literal(true, {
-      errorMap: () => ({ message: "You must accept the terms to continue" }),
+      errorMap: () => ({ message: "Debes aceptar los términos para continuar" }),
     }),
   })
   .refine((d) => d.password === d.confirmPassword, {
     path: ["confirmPassword"],
-    message: "Passwords don't match",
+    message: "Las contraseñas no coinciden",
   });
 export type SignupInput = z.infer<typeof signupSchema>;
 
-/* ---------------- Onboarding ---------------- */
+/* ---------------- Listings (Colombia) ---------------- */
 
-export const US_STATES = [
-  "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS","KY","LA","ME","MD",
-  "MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY","NC","ND","OH","OK","OR","PA","RI","SC",
-  "SD","TN","TX","UT","VT","VA","WA","WV","WI","WY","DC",
+export const CIUDADES = [
+  { value: "Bogotá", label: "Bogotá" },
+  { value: "Medellín", label: "Medellín" },
+  { value: "Cali", label: "Cali" },
 ] as const;
 
-export const PROPERTY_TYPES = [
-  { value: "single_family", label: "Single Family" },
-  { value: "condo", label: "Condo" },
-  { value: "townhouse", label: "Townhouse" },
-  { value: "multi_family", label: "Multi-Family" },
+export const TIPOS_NEGOCIO = [
+  { value: "venta", label: "Venta" },
+  { value: "arriendo", label: "Arriendo" },
 ] as const;
 
-export const ROOM_TAGS = [
-  { value: "exterior", label: "Exterior" },
-  { value: "kitchen", label: "Kitchen" },
-  { value: "living_room", label: "Living Room" },
-  { value: "dining_room", label: "Dining Room" },
-  { value: "bedroom", label: "Bedroom" },
-  { value: "bathroom", label: "Bathroom" },
-  { value: "office", label: "Office" },
-  { value: "garage", label: "Garage" },
-  { value: "backyard", label: "Backyard" },
-  { value: "basement", label: "Basement" },
-  { value: "other", label: "Other" },
+export const TIPOS_INMUEBLE = [
+  { value: "apartamento", label: "Apartamento" },
+  { value: "casa", label: "Casa" },
+  { value: "apartaestudio", label: "Apartaestudio" },
+  { value: "local", label: "Local comercial" },
+  { value: "oficina", label: "Oficina" },
+  { value: "bodega", label: "Bodega" },
 ] as const;
 
-export const addressSchema = z.object({
-  address_line1: z.string().trim().min(3, "Enter a street address"),
-  address_line2: z.string().trim().optional().or(z.literal("")),
-  ciudad: z.string().trim().min(2, "City required"),
-  state: z.enum(US_STATES, { errorMap: () => ({ message: "Pick a state" }) }),
-  zip_code: z.string().trim().regex(/^\d{5}(-\d{4})?$/, "Use 12345 or 12345-6789"),
+export const listingSchema = z.object({
+  tipo_negocio: z.enum(["venta", "arriendo"], {
+    errorMap: () => ({ message: "Selecciona venta o arriendo" }),
+  }),
+  tipo_inmueble: z.string().trim().min(1, "Selecciona el tipo de inmueble"),
+  ciudad: z.string().trim().min(2, "Selecciona la ciudad"),
+  ubicacion: z.string().trim().min(3, "Indica el barrio o sector"),
+  habitaciones: z.coerce.number().int().min(0).max(20),
+  banos: z.coerce.number().int().min(0).max(20),
+  parqueaderos: z.coerce.number().int().min(0).max(20),
+  area_m2: z.coerce.number().int().min(10).max(10000),
+  precio: z.coerce.number().min(100000).max(50000000000),
+  descripcion: z
+    .string()
+    .trim()
+    .min(20, "Mínimo 20 caracteres — cuenta lo bueno")
+    .max(2000, "Máximo 2000 caracteres"),
 });
-export type AddressInput = z.infer<typeof addressSchema>;
-
-export const detailsSchema = z.object({
-  tipo_inmueble: z.enum(["single_family", "condo", "townhouse", "multi_family"]),
-  habitaciones: z.coerce.number().int().min(0).max(50),
-  banos: z.coerce.number().min(0).max(50),
-  sqft: z.coerce.number().int().min(100).max(100000),
-  lot_sqft: z.coerce.number().int().min(0).max(10000000).optional().nullable(),
-  year_built: z.coerce.number().int().min(1700).max(new Date().getFullYear() + 1).optional().nullable(),
-  stories: z.coerce.number().int().min(1).max(10).optional().nullable(),
-  garage_spaces: z.coerce.number().int().min(0).max(20).optional().nullable(),
-  hoa_monthly: z.coerce.number().min(0).max(100000).optional().nullable(),
-  precio: z.coerce.number().min(1000).max(1000000000),
-});
-export type DetailsInput = z.infer<typeof detailsSchema>;
-
-export const storySchema = z.object({
-  seller_story: z.string().trim().max(2000, "Keep it under 2000 characters").optional().or(z.literal("")),
-  description_short: z.string().trim().max(280, "Keep it under 280 characters").optional().or(z.literal("")),
-});
-export type StoryInput = z.infer<typeof storySchema>;
+export type ListingInput = z.infer<typeof listingSchema>;
 
 /* ---------------- Settings ---------------- */
 
 export const profileSchema = z.object({
-  nombre: z.string().trim().min(2, "Name required"),
+  nombre: z.string().trim().min(2, "Nombre requerido"),
   bio: z.string().trim().max(500).optional().or(z.literal("")),
 });
 export type ProfileInput = z.infer<typeof profileSchema>;

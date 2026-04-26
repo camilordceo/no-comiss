@@ -77,7 +77,6 @@ export async function requireDashboardSession(): Promise<DashboardSession> {
       .from("propiedades")
       .select("*")
       .eq("empresa_id", profile.empresa_id)
-      .eq("source", "nocomiss")
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();

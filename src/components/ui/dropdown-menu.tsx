@@ -19,7 +19,7 @@ const DropdownMenuContent = React.forwardRef<
       ref={ref}
       sideOffset={sideOffset}
       className={cn(
-        "z-50 min-w-[10rem] overflow-hidden rounded-md border border-brand-light-gray bg-white p-1 text-brand-black shadow-sm",
+        "z-50 min-w-[10rem] overflow-hidden rounded-md border border-border bg-surface-3 p-1 text-foreground shadow-xl",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         className,
       )}
@@ -37,7 +37,7 @@ const DropdownMenuItem = React.forwardRef<
     ref={ref}
     className={cn(
       "relative flex cursor-pointer select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors",
-      "focus:bg-brand-medium-gray data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "focus:bg-surface-4 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       inset && "pl-8",
       className,
     )}
@@ -52,7 +52,10 @@ const DropdownMenuLabel = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Label
     ref={ref}
-    className={cn("px-2 py-1.5 text-xs font-medium text-brand-muted", className)}
+    className={cn(
+      "px-2 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground",
+      className,
+    )}
     {...props}
   />
 ));
@@ -64,7 +67,7 @@ const DropdownMenuSeparator = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DropdownMenuPrimitive.Separator
     ref={ref}
-    className={cn("-mx-1 my-1 h-px bg-brand-light-gray", className)}
+    className={cn("-mx-1 my-1 h-px bg-border", className)}
     {...props}
   />
 ));
@@ -81,5 +84,4 @@ export {
   DropdownMenuPortal,
 };
 
-// Accept Check import to avoid lint warning when re-exported as needed.
 export const _Check = Check;

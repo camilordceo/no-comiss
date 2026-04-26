@@ -10,10 +10,10 @@ const patchSchema = z.object({
   ciudad: z.string().optional(),
   state: z.string().optional(),
   zip_code: z.string().optional(),
-  tipo_inmueble: z
-    .enum(["single_family", "condo", "townhouse", "multi_family"])
-    .nullable()
-    .optional(),
+  tipo_inmueble: z.string().nullable().optional(),
+  tipo_negocio: z.string().nullable().optional(),
+  parqueaderos: z.number().int().nullable().optional(),
+  ubicacion: z.string().nullable().optional(),
   habitaciones: z.number().int().nullable().optional(),
   banos: z.number().nullable().optional(),
   sqft: z.number().int().nullable().optional(),

@@ -4,20 +4,33 @@
 
 @layer base {
   :root {
-    --brand-teal: #40d99d;
-    --brand-mint: #4fffb4;
-    --brand-light-gray: #e5e5e5;
-    --brand-medium-gray: #f0f0f0;
-    --brand-black: #1a1a1a;
-    --brand-muted: #6b7280;
-    --brand-bg-alt: #f8f8f8;
-    --error: #dc2626;
-    --warning: #f59e0b;
-    --info: #3b82f6;
+    --brand-green: #1D9E75;
+    --brand-green-dark: #157a5a;
+    --brand-green-light: #e8f5f0;
+    --brand-green-glow: rgba(29, 158, 117, 0.25);
+
+    --surface-base: #0f0f1a;
+    --surface-1: #1a1a2e;
+    --surface-2: #212136;
+    --surface-3: #252538;
+    --surface-4: #2d2d44;
+
+    --border-default: #3a3a55;
+    --border-subtle: rgba(58, 58, 85, 0.5);
+
+    --text-primary: #e8e8f0;
+    --text-muted: #8888aa;
+    --text-white: #ffffff;
+
+    --yellow: #f59e0b;
+    --red: #ef4444;
+    --blue: #3b82f6;
+
+    color-scheme: dark;
   }
 
   * {
-    border-color: var(--brand-light-gray);
+    border-color: var(--border-default);
   }
 
   html {
@@ -27,34 +40,37 @@
   }
 
   body {
-    background: #ffffff;
-    color: var(--brand-black);
-    font-family: var(--font-inter), system-ui, sans-serif;
+    background: var(--surface-1);
+    color: var(--text-primary);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
     font-weight: 400;
-    line-height: 1.6;
+    line-height: 1.5;
+    font-size: 13px;
   }
 
   h1 {
-    font-weight: 600;
+    font-weight: 700;
     letter-spacing: -0.02em;
+    color: var(--text-white);
   }
 
   h2,
   h3,
   h4 {
-    font-weight: 500;
+    font-weight: 600;
     letter-spacing: -0.01em;
+    color: var(--text-white);
   }
 
   ::selection {
-    background: var(--brand-mint);
-    color: var(--brand-black);
+    background: var(--brand-green);
+    color: var(--text-white);
   }
 
   *:focus-visible {
-    outline: 2px solid var(--brand-teal);
+    outline: 2px solid var(--brand-green);
     outline-offset: 2px;
-    border-radius: 4px;
+    border-radius: 6px;
   }
 
   button,
@@ -64,16 +80,49 @@
   textarea {
     transition: all 200ms ease;
   }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--surface-1);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--surface-3);
+    border-radius: 5px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--surface-4);
+  }
 }
 
 @layer components {
+  /* Rentmies typography helpers */
+  .label-section {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-muted);
+  }
+
+  .label-form {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    color: var(--text-muted);
+  }
+
   /* Skeleton shimmer */
   .skeleton {
     background: linear-gradient(
       90deg,
-      var(--brand-medium-gray) 25%,
-      var(--brand-light-gray) 50%,
-      var(--brand-medium-gray) 75%
+      var(--surface-2) 25%,
+      var(--surface-3) 50%,
+      var(--surface-2) 75%
     );
     background-size: 200% 100%;
     animation: shimmer 1.5s ease-in-out infinite;
@@ -94,23 +143,20 @@
   .stagger-item:nth-child(7) { animation-delay: 300ms; }
   .stagger-item:nth-child(8) { animation-delay: 350ms; }
 
-  /* Progress bar */
-  .progress-fill {
-    background: linear-gradient(90deg, var(--brand-teal), var(--brand-mint));
-    transition: width 400ms cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
   /* Card hover */
   .card-hover {
     transition: all 200ms ease;
   }
   .card-hover:hover {
-    border-color: var(--brand-teal);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(64, 217, 157, 0.12);
+    border-color: var(--brand-green);
   }
 
-  /* Button active scale */
+  /* Primary button hover lift + glow */
+  .btn-primary-hover:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 16px var(--brand-green-glow);
+  }
+
   .btn-press:active {
     transform: scale(0.98);
   }
@@ -118,6 +164,48 @@
   /* Page enter */
   .page-enter {
     animation: fadeIn 300ms ease-out forwards;
+  }
+
+  /* Status pill */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid transparent;
+  }
+  .status-pill::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: currentColor;
+  }
+  .status-active {
+    color: #1D9E75;
+    background: rgba(29, 158, 117, 0.12);
+    border-color: rgba(29, 158, 117, 0.3);
+  }
+  .status-draft {
+    color: #3b82f6;
+    background: rgba(59, 130, 246, 0.12);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  .status-paused {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+    border-color: rgba(239, 68, 68, 0.3);
+  }
+  .status-warning {
+    color: #f59e0b;
+    background: rgba(245, 158, 11, 0.12);
+    border-color: rgba(245, 158, 11, 0.3);
   }
 }
 

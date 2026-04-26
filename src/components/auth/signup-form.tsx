@@ -23,10 +23,10 @@ interface PasswordRule {
 }
 
 const PASSWORD_RULES: PasswordRule[] = [
-  { label: "At least 8 characters", test: (p) => p.length >= 8 },
-  { label: "An uppercase letter", test: (p) => /[A-Z]/.test(p) },
-  { label: "A lowercase letter", test: (p) => /[a-z]/.test(p) },
-  { label: "A number", test: (p) => /\d/.test(p) },
+  { label: "Mínimo 8 caracteres", test: (p) => p.length >= 8 },
+  { label: "Una letra mayúscula", test: (p) => /[A-Z]/.test(p) },
+  { label: "Una letra minúscula", test: (p) => /[a-z]/.test(p) },
+  { label: "Un número", test: (p) => /\d/.test(p) },
 ];
 
 export function SignupForm() {
@@ -64,7 +64,7 @@ export function SignupForm() {
           data: {
             full_name: values.fullName,
             nombre: values.fullName,
-            source: "nocomiss",
+            source: "rentmies",
           },
           emailRedirectTo:
             (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin) + "/api/auth/callback",
@@ -80,36 +80,38 @@ export function SignupForm() {
       logger.info("auth.signup_success", { userId: data.user?.id });
 
       if (!data.session) {
-        toast.success("Check your email to confirm your account.");
+        toast.success("Revisa tu email para confirmar la cuenta.");
         router.push("/login");
         return;
       }
 
-      toast.success("Welcome to NoComiss!");
+      toast.success("¡Bienvenido a Rentmies!");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       logger.error("auth.signup_exception", { error: err });
-      toast.error("Something went wrong. Please try again.");
+      toast.error("Algo salió mal. Inténtalo de nuevo.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="rounded-lg border border-brand-light-gray bg-white p-8 shadow-sm">
+    <div className="rounded-xl border border-border bg-surface-2 p-7 shadow-sm">
       <div className="mb-6 space-y-1">
-        <h1 className="text-2xl font-medium tracking-tight text-brand-black">Get started</h1>
-        <p className="text-sm text-brand-muted">List your home in minutes. Save thousands.</p>
+        <h1 className="text-2xl font-bold tracking-tight text-white">Crear cuenta</h1>
+        <p className="text-sm text-muted-foreground">
+          Publica tu primer inmueble en menos de 5 minutos.
+        </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="fullName">Full name</Label>
+          <Label htmlFor="fullName">Nombre completo</Label>
           <Input
             id="fullName"
             autoComplete="name"
-            placeholder="Jane Homeowner"
+            placeholder="Camilo Pérez"
             aria-invalid={!!errors.fullName}
             {...register("fullName")}
           />
@@ -126,7 +128,7 @@ export function SignupForm() {
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="you@example.com"
+            placeholder="tu@email.com"
             aria-invalid={!!errors.email}
             {...register("email")}
           />
@@ -138,12 +140,12 @@ export function SignupForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">Contraseña</Label>
           <Input
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder="At least 8 characters"
+            placeholder="Mínimo 8 caracteres"
             aria-invalid={!!errors.password}
             {...register("password")}
           />
@@ -155,7 +157,7 @@ export function SignupForm() {
                   key={rule.label}
                   className={cn(
                     "flex items-center gap-1.5",
-                    ok ? "text-brand-teal" : "text-brand-muted",
+                    ok ? "text-brand-green" : "text-muted-foreground",
                   )}
                 >
                   <Check
@@ -171,12 +173,12 @@ export function SignupForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm password</Label>
+          <Label htmlFor="confirmPassword">Confirma la contraseña</Label>
           <Input
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            placeholder="Re-enter your password"
+            placeholder="Repite la contraseña"
             aria-invalid={!!errors.confirmPassword}
             {...register("confirmPassword")}
           />
@@ -201,14 +203,14 @@ export function SignupForm() {
                 className="mt-0.5"
               />
               <div className="space-y-1">
-                <Label htmlFor="terms" className="font-normal leading-snug">
-                  I agree to the{" "}
-                  <Link href="/terms" className="font-medium text-brand-teal hover:underline">
-                    Terms of Service
+                <Label htmlFor="terms" className="font-normal normal-case tracking-normal leading-snug text-muted-foreground">
+                  Acepto los{" "}
+                  <Link href="/terms" className="font-semibold text-brand-green hover:underline">
+                    Términos de Servicio
                   </Link>{" "}
-                  and{" "}
-                  <Link href="/privacy" className="font-medium text-brand-teal hover:underline">
-                    Privacy Policy
+                  y la{" "}
+                  <Link href="/privacy" className="font-semibold text-brand-green hover:underline">
+                    Política de Privacidad
                   </Link>
                   .
                 </Label>
@@ -224,14 +226,14 @@ export function SignupForm() {
 
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {submitting ? "Creating account..." : "Create account"}
+          {submitting ? "Creando cuenta…" : "Crear cuenta"}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-brand-muted">
-        Already have an account?{" "}
-        <Link href="/login" className="font-medium text-brand-teal hover:underline">
-          Log in
+      <p className="mt-6 text-center text-sm text-muted-foreground">
+        ¿Ya tienes cuenta?{" "}
+        <Link href="/login" className="font-semibold text-brand-green hover:underline">
+          Ingresar
         </Link>
       </p>
     </div>

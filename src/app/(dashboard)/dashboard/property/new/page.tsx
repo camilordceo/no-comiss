@@ -1,66 +1,41 @@
 import { redirect } from "next/navigation";
-import { requireDashboardSession } from "@/lib/hooks/use-session";
-import { createClient } from "@/lib/supabase/server";
-import { WizardClient } from "./wizard-client";
-import type { Propiedad, PropiedadMedia } from "@/lib/types/database";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
-interface PageProps {
-  searchParams: Promise<{ id?: string; step?: string }>;
-}
+import { requireDashboardSession } from "@/lib/hooks/use-session";
+import { ListingForm } from "./listing-form";
 
 export const dynamic = "force-dynamic";
 
-export default async function PropertyOnboardingPage({ searchParams }: PageProps) {
-  const params = await searchParams;
+export default async function NewListingPage() {
   const session = await requireDashboardSession();
 
   if (!session.profile.empresa_id) {
     redirect("/dashboard");
   }
 
-  let property: Propiedad | null = null;
-  let media: PropiedadMedia[] = [];
-
-  if (params.id) {
-    const supabase = await createClient();
-    const [{ data: prop }, { data: med }] = await Promise.all([
-      supabase
-        .from("propiedades")
-        .select("*")
-        .eq("id", params.id)
-        .eq("empresa_id", session.profile.empresa_id)
-        .maybeSingle(),
-      supabase
-        .from("propiedad_media")
-        .select("*")
-        .eq("propiedad_id", params.id)
-        .order("sort_order", { ascending: true }),
-    ]);
-    property = prop;
-    media = med ?? [];
-  } else if (session.primaryProperty?.listing_status === "onboarding") {
-    // Resume in-progress onboarding from the most recent draft.
-    const supabase = await createClient();
-    property = session.primaryProperty;
-    const { data: med } = await supabase
-      .from("propiedad_media")
-      .select("*")
-      .eq("propiedad_id", property.id)
-      .order("sort_order", { ascending: true });
-    media = med ?? [];
-  }
-
-  let step = Number(params.step ?? property?.onboarding_step ?? 1);
-  if (!Number.isFinite(step) || step < 1) step = 1;
-  if (step > 6) step = 6;
-  if (!property && step > 1) step = 1;
-
   return (
-    <WizardClient
-      step={step}
-      property={property}
-      empresaId={session.profile.empresa_id}
-      media={media}
-    />
+    <div className="space-y-6">
+      <div>
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-colors hover:text-white"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" aria-hidden />
+          Volver
+        </Link>
+        <div className="mt-3">
+          <div className="label-section mb-2">Nuevo inmueble</div>
+          <h1 className="text-2xl font-bold tracking-tight text-white md:text-3xl">
+            Publica tu inmueble.
+          </h1>
+          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
+            Llena los datos, sube unas fotos buenas y el agente de IA empieza a pautarlo.
+          </p>
+        </div>
+      </div>
+
+      <ListingForm empresaId={session.profile.empresa_id} />
+    </div>
   );
 }

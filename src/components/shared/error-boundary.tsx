@@ -35,16 +35,18 @@ export class ErrorBoundary extends React.Component<Props, State> {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
       return (
-        <div className="flex flex-col items-center justify-center gap-4 rounded-lg border border-border bg-surface-3 p-8 text-center">
-          <AlertCircle className="h-8 w-8 text-error" aria-hidden />
+        <div className="flex flex-col items-center justify-center gap-4 border border-rule bg-ivory p-8 text-center">
+          <AlertCircle className="h-8 w-8 text-rust" aria-hidden />
           <div>
-            <h3 className="text-lg font-semibold text-white">Algo salió mal</h3>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {this.state.error?.message ?? "Error inesperado"}
+            <h3 className="font-serif text-xl font-medium text-text">
+              Something broke.
+            </h3>
+            <p className="mt-1 text-sm text-text-2">
+              {this.state.error?.message ?? "Unexpected error"}
             </p>
           </div>
-          <Button variant="outline" onClick={this.reset}>
-            Reintentar
+          <Button variant="ghost" onClick={this.reset}>
+            Try again
           </Button>
         </div>
       );

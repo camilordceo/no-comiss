@@ -23,10 +23,10 @@ interface PasswordRule {
 }
 
 const PASSWORD_RULES: PasswordRule[] = [
-  { label: "Mínimo 8 caracteres", test: (p) => p.length >= 8 },
-  { label: "Una letra mayúscula", test: (p) => /[A-Z]/.test(p) },
-  { label: "Una letra minúscula", test: (p) => /[a-z]/.test(p) },
-  { label: "Un número", test: (p) => /\d/.test(p) },
+  { label: "8+ characters", test: (p) => p.length >= 8 },
+  { label: "Uppercase letter", test: (p) => /[A-Z]/.test(p) },
+  { label: "Lowercase letter", test: (p) => /[a-z]/.test(p) },
+  { label: "A number", test: (p) => /\d/.test(p) },
 ];
 
 export function SignupForm() {
@@ -64,10 +64,11 @@ export function SignupForm() {
           data: {
             full_name: values.fullName,
             nombre: values.fullName,
-            source: "rentmies",
+            source: "nocomiss",
           },
           emailRedirectTo:
-            (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin) + "/api/auth/callback",
+            (process.env.NEXT_PUBLIC_APP_URL ?? window.location.origin) +
+            "/api/auth/callback",
         },
       });
 
@@ -80,43 +81,46 @@ export function SignupForm() {
       logger.info("auth.signup_success", { userId: data.user?.id });
 
       if (!data.session) {
-        toast.success("Revisa tu email para confirmar la cuenta.");
+        toast.success("Check your email to confirm your account.");
         router.push("/login");
         return;
       }
 
-      toast.success("¡Bienvenido a Rentmies!");
+      toast.success("Welcome to NoComiss.");
       router.push("/dashboard");
       router.refresh();
     } catch (err) {
       logger.error("auth.signup_exception", { error: err });
-      toast.error("Algo salió mal. Inténtalo de nuevo.");
+      toast.error("Something went wrong. Try again.");
     } finally {
       setSubmitting(false);
     }
   }
 
   return (
-    <div className="rounded-xl border border-border bg-surface-2 p-7 shadow-sm">
-      <div className="mb-6 space-y-1">
-        <h1 className="text-2xl font-bold tracking-tight text-white">Crear cuenta</h1>
-        <p className="text-sm text-muted-foreground">
-          Publica tu primer inmueble en menos de 5 minutos.
+    <div className="rounded-sm border border-rule-strong bg-ivory p-8">
+      <div className="mb-7 space-y-2">
+        <div className="eyebrow eyebrow-coral">Get started</div>
+        <h1 className="font-serif text-3xl font-medium leading-tight tracking-tight text-text">
+          <span className="italic">List your home in 5 minutes.</span>
+        </h1>
+        <p className="text-sm text-text-2">
+          Save $25,000+ in commissions. Cancel any time.
         </p>
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="fullName">Nombre completo</Label>
+          <Label htmlFor="fullName">Full name</Label>
           <Input
             id="fullName"
             autoComplete="name"
-            placeholder="Camilo Pérez"
+            placeholder="Jane Homeowner"
             aria-invalid={!!errors.fullName}
             {...register("fullName")}
           />
           {errors.fullName ? (
-            <p role="alert" className="text-xs text-error">
+            <p role="alert" className="text-xs text-rust">
               {errors.fullName.message}
             </p>
           ) : null}
@@ -128,28 +132,28 @@ export function SignupForm() {
             id="email"
             type="email"
             autoComplete="email"
-            placeholder="tu@email.com"
+            placeholder="you@email.com"
             aria-invalid={!!errors.email}
             {...register("email")}
           />
           {errors.email ? (
-            <p role="alert" className="text-xs text-error">
+            <p role="alert" className="text-xs text-rust">
               {errors.email.message}
             </p>
           ) : null}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="password">Contraseña</Label>
+          <Label htmlFor="password">Password</Label>
           <Input
             id="password"
             type="password"
             autoComplete="new-password"
-            placeholder="Mínimo 8 caracteres"
+            placeholder="Min 8 characters"
             aria-invalid={!!errors.password}
             {...register("password")}
           />
-          <ul className="mt-2 grid gap-1 text-xs">
+          <ul className="mt-2 grid grid-cols-2 gap-1 text-xs">
             {PASSWORD_RULES.map((rule) => {
               const ok = rule.test(password);
               return (
@@ -157,7 +161,7 @@ export function SignupForm() {
                   key={rule.label}
                   className={cn(
                     "flex items-center gap-1.5",
-                    ok ? "text-brand-green" : "text-muted-foreground",
+                    ok ? "text-coral" : "text-text-3",
                   )}
                 >
                   <Check
@@ -173,17 +177,17 @@ export function SignupForm() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirma la contraseña</Label>
+          <Label htmlFor="confirmPassword">Confirm password</Label>
           <Input
             id="confirmPassword"
             type="password"
             autoComplete="new-password"
-            placeholder="Repite la contraseña"
+            placeholder="Re-enter password"
             aria-invalid={!!errors.confirmPassword}
             {...register("confirmPassword")}
           />
           {errors.confirmPassword ? (
-            <p role="alert" className="text-xs text-error">
+            <p role="alert" className="text-xs text-rust">
               {errors.confirmPassword.message}
             </p>
           ) : null}
@@ -203,19 +207,22 @@ export function SignupForm() {
                 className="mt-0.5"
               />
               <div className="space-y-1">
-                <Label htmlFor="terms" className="font-normal normal-case tracking-normal leading-snug text-muted-foreground">
-                  Acepto los{" "}
-                  <Link href="/terms" className="font-semibold text-brand-green hover:underline">
-                    Términos de Servicio
+                <Label
+                  htmlFor="terms"
+                  className="font-sans normal-case tracking-normal text-xs text-text-2"
+                >
+                  I agree to the{" "}
+                  <Link href="/terms" className="link-underline font-semibold">
+                    Terms
                   </Link>{" "}
-                  y la{" "}
-                  <Link href="/privacy" className="font-semibold text-brand-green hover:underline">
-                    Política de Privacidad
+                  and{" "}
+                  <Link href="/privacy" className="link-underline font-semibold">
+                    Privacy Policy
                   </Link>
                   .
                 </Label>
                 {errors.terms ? (
-                  <p role="alert" className="text-xs text-error">
+                  <p role="alert" className="text-xs text-rust">
                     {errors.terms.message}
                   </p>
                 ) : null}
@@ -224,16 +231,16 @@ export function SignupForm() {
           )}
         />
 
-        <Button type="submit" className="w-full" disabled={submitting}>
-          {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-          {submitting ? "Creando cuenta…" : "Crear cuenta"}
+        <Button type="submit" variant="spark" className="w-full" disabled={submitting}>
+          {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+          {submitting ? "Creating account…" : "Create account"}
         </Button>
       </form>
 
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        ¿Ya tienes cuenta?{" "}
-        <Link href="/login" className="font-semibold text-brand-green hover:underline">
-          Ingresar
+      <p className="mt-7 text-center text-sm text-text-3">
+        Already have an account?{" "}
+        <Link href="/login" className="link-underline font-semibold">
+          Sign in
         </Link>
       </p>
     </div>

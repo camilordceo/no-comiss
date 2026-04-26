@@ -4,28 +4,48 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils/cn";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-green focus-visible:ring-offset-2 focus-visible:ring-offset-surface-1 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98] [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  [
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-sm",
+    "font-mono uppercase font-semibold tracking-[0.16em]",
+    "transition-all duration-180 ease-cap",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-espresso focus-visible:ring-offset-2 focus-visible:ring-offset-crema",
+    "disabled:pointer-events-none disabled:opacity-50",
+    "active:translate-y-px",
+    "[&_svg]:pointer-events-none [&_svg]:size-3.5 [&_svg]:shrink-0",
+  ].join(" "),
   {
     variants: {
       variant: {
+        // Primary — espresso (use for most actions)
         default:
-          "bg-brand-green text-white hover:bg-brand-green-dark hover:-translate-y-px hover:shadow-glow",
-        secondary:
-          "bg-surface-3 text-foreground border border-border hover:border-brand-green hover:text-white",
-        outline:
-          "bg-transparent text-foreground border border-border hover:border-brand-green hover:text-white",
+          "bg-espresso text-text-on-dark hover:bg-espresso-2 hover:text-paper",
+        // Spark — coral (one per page, the single most important action)
+        spark:
+          "bg-coral text-white hover:bg-coral-deep",
+        // Ghost — bordered, on crema background
         ghost:
-          "text-muted-foreground hover:bg-surface-3 hover:text-foreground",
+          "bg-transparent text-text border border-rule-strong hover:border-espresso hover:bg-ivory/60",
+        // On dark — for dark espresso surfaces
+        onDark:
+          "bg-ivory text-espresso hover:bg-paper",
+        // Outline — alias of ghost (kept for compat)
+        outline:
+          "bg-transparent text-text border border-rule-strong hover:border-espresso hover:bg-ivory/60",
+        // Secondary — subtle ivory pill
+        secondary:
+          "bg-ivory text-text border border-rule-strong hover:border-espresso",
+        // Link — text-only, coral on hover
         link:
-          "text-brand-green underline-offset-4 hover:underline px-0 h-auto",
+          "px-0 h-auto bg-transparent text-text hover:text-coral underline underline-offset-4 decoration-rule-strong hover:decoration-coral",
+        // Destructive — rust outline
         destructive:
-          "bg-error/15 text-error border border-error/40 hover:bg-error/25",
+          "bg-transparent text-rust border border-rust/40 hover:bg-rust/10 hover:border-rust",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-8 px-3 text-xs rounded-sm",
-        lg: "h-12 px-6 text-base",
-        icon: "h-10 w-10",
+        default: "text-[11px] px-5 py-3 h-10",
+        sm: "text-[10px] px-3 py-2 h-8",
+        lg: "text-[12px] px-6 py-3.5 h-12",
+        icon: "h-10 w-10 p-0",
       },
     },
     defaultVariants: {

@@ -9,13 +9,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const session = await requireDashboardSession();
   const name = session.profile.nombre ?? "";
   const avatarUrl = session.profile.avatar_url;
+  const empresaName = session.empresa?.nombre ?? null;
 
   return (
-    <div className="flex min-h-screen bg-surface-1">
-      <Sidebar email={session.email} name={name} avatarUrl={avatarUrl} />
+    <div className="flex min-h-screen bg-crema">
+      <Sidebar
+        email={session.email}
+        name={name}
+        avatarUrl={avatarUrl}
+        empresaName={empresaName}
+      />
       <div className="flex flex-1 flex-col">
         <Header email={session.email} name={name} avatarUrl={avatarUrl} />
-        <main className="flex-1 px-4 pb-24 pt-6 md:px-8 md:pb-12 md:pt-8 page-enter">
+        <main className="flex-1 px-5 pb-24 pt-8 md:px-10 md:pb-12 md:pt-10 animate-fade-up">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>
       </div>

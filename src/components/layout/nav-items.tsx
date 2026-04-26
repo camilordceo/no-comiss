@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutDashboard, Plus, Settings } from "lucide-react";
+import {
+  BarChart3,
+  Camera,
+  Home,
+  LayoutDashboard,
+  Settings,
+} from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
 interface NavItem {
@@ -13,25 +19,28 @@ interface NavItem {
   match: (path: string) => boolean;
 }
 
-const NAV: NavItem[] = [
+const NAV_PRIMARY: NavItem[] = [
   {
-    key: "dashboard",
+    key: "overview",
     href: "/dashboard",
-    label: "Inicio",
+    label: "Overview",
     icon: LayoutDashboard,
     match: (p) => p === "/dashboard",
   },
   {
-    key: "inmuebles",
+    key: "listings",
     href: "/dashboard/property/new",
-    label: "Nuevo inmueble",
-    icon: Plus,
-    match: (p) => p.startsWith("/dashboard/property/new"),
+    label: "New listing",
+    icon: Home,
+    match: (p) => p.startsWith("/dashboard/property"),
   },
+];
+
+const NAV_SECONDARY: NavItem[] = [
   {
-    key: "settings",
+    key: "results",
     href: "/dashboard/settings",
-    label: "Configuración",
+    label: "Settings",
     icon: Settings,
     match: (p) => p.startsWith("/dashboard/settings"),
   },
@@ -42,49 +51,93 @@ interface SidebarNavProps {
   variant?: "sidebar" | "sheet";
 }
 
+function NavLink({
+  item,
+  active,
+  onNavigate,
+  isSheet,
+}: {
+  item: NavItem;
+  active: boolean;
+  onNavigate?: () => void;
+  isSheet: boolean;
+}) {
+  const Icon = item.icon;
+  return (
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      onClick={onNavigate}
+      className={cn(
+        "group relative flex items-center gap-3 px-4 py-3",
+        "font-mono text-[11px] font-semibold uppercase tracking-[0.14em]",
+        "transition-colors duration-180",
+        isSheet ? "min-h-12" : "",
+        active
+          ? "border-l-2 border-coral bg-crema-2 text-text"
+          : "border-l-2 border-transparent text-text-3 hover:bg-crema-2/60 hover:text-text",
+      )}
+    >
+      <Icon className="h-3.5 w-3.5" aria-hidden />
+      {item.label}
+    </Link>
+  );
+}
+
 export function SidebarNav({ onNavigate, variant = "sidebar" }: SidebarNavProps) {
   const pathname = usePathname();
   const isSheet = variant === "sheet";
 
   return (
-    <nav className="flex flex-col gap-1 px-3" aria-label="Navegación principal">
-      {NAV.map((item) => {
-        const isActive = item.match(pathname);
-        const Icon = item.icon;
-        return (
-          <Link
+    <nav className="flex flex-col gap-3" aria-label="Primary navigation">
+      <div>
+        <div className="px-4 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-3">
+          Workspace
+        </div>
+        {NAV_PRIMARY.map((item) => (
+          <NavLink
             key={item.key}
-            href={item.href}
-            aria-current={isActive ? "page" : undefined}
-            onClick={onNavigate}
-            className={cn(
-              "group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold transition-all duration-150",
-              isSheet ? "min-h-11" : "",
-              isActive
-                ? "bg-brand-green/15 text-brand-green"
-                : "text-muted-foreground hover:bg-surface-3 hover:text-white",
-            )}
-          >
-            {isActive ? (
-              <span
-                aria-hidden
-                className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-brand-green"
-              />
-            ) : null}
-            <Icon className="h-4 w-4" aria-hidden />
-            {item.label}
-          </Link>
-        );
-      })}
+            item={item}
+            active={item.match(pathname)}
+            onNavigate={onNavigate}
+            isSheet={isSheet}
+          />
+        ))}
+      </div>
+      <div>
+        <div className="px-4 pb-2 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-text-3">
+          Account
+        </div>
+        {NAV_SECONDARY.map((item) => (
+          <NavLink
+            key={item.key}
+            item={item}
+            active={item.match(pathname)}
+            onNavigate={onNavigate}
+            isSheet={isSheet}
+          />
+        ))}
+      </div>
     </nav>
   );
 }
+
+const NAV_BOTTOM: NavItem[] = [
+  ...NAV_PRIMARY,
+  {
+    key: "settings",
+    href: "/dashboard/settings",
+    label: "Settings",
+    icon: Settings,
+    match: (p) => p.startsWith("/dashboard/settings"),
+  },
+];
 
 export function BottomNavLinks() {
   const pathname = usePathname();
   return (
     <ul className="grid grid-cols-3">
-      {NAV.map(({ label, href, icon: Icon, match }) => {
+      {NAV_BOTTOM.map(({ label, href, icon: Icon, match }) => {
         const active = match(pathname);
         return (
           <li key={href}>
@@ -92,12 +145,16 @@ export function BottomNavLinks() {
               href={href}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "flex min-h-14 flex-col items-center justify-center gap-1 px-2 py-2 text-[11px] font-semibold uppercase tracking-wider transition-colors",
-                active ? "text-brand-green" : "text-muted-foreground",
+                "flex min-h-14 flex-col items-center justify-center gap-1 px-2 py-2",
+                "font-mono text-[10px] font-semibold uppercase tracking-[0.14em]",
+                "transition-colors duration-180",
+                active
+                  ? "text-coral border-t-2 border-coral"
+                  : "text-text-3 border-t-2 border-transparent",
               )}
             >
-              <Icon className="h-5 w-5" aria-hidden />
-              {label === "Nuevo inmueble" ? "Nuevo" : label}
+              <Icon className="h-4 w-4" aria-hidden />
+              {label === "New listing" ? "New" : label}
             </Link>
           </li>
         );
@@ -106,4 +163,4 @@ export function BottomNavLinks() {
   );
 }
 
-export const _NAV_FOR_TYPING: typeof NAV = NAV;
+export const _NAV_FOR_TYPING: typeof NAV_PRIMARY = NAV_PRIMARY;

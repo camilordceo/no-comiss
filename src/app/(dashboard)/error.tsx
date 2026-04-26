@@ -17,18 +17,21 @@ export default function DashboardError({
   }, [error]);
 
   return (
-    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col items-center justify-center gap-4 p-8 text-center">
-      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-error/15">
-        <AlertTriangle className="h-5 w-5 text-error" aria-hidden />
+    <div className="mx-auto flex min-h-[60vh] w-full max-w-md flex-col items-center justify-center gap-5 p-8 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rust/15">
+        <AlertTriangle className="h-5 w-5 text-rust" aria-hidden />
       </div>
       <div>
-        <h1 className="text-xl font-semibold text-white">Algo salió mal</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Ocurrió un error inesperado. Inténtalo de nuevo o vuelve al inicio.
+        <div className="eyebrow eyebrow-coral mb-2">Error</div>
+        <h1 className="font-serif text-2xl font-medium text-text">
+          <span className="italic">Something broke.</span>
+        </h1>
+        <p className="mt-2 text-sm text-text-2">
+          The terminal hit an unexpected error. Try again or head back to overview.
         </p>
       </div>
-      <Button onClick={() => reset()} variant="outline">
-        <RotateCw className="h-4 w-4" /> Reintentar
+      <Button onClick={() => reset()} variant="ghost">
+        <RotateCw className="h-3.5 w-3.5" /> Try again
       </Button>
     </div>
   );

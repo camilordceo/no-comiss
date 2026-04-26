@@ -52,15 +52,15 @@ export function ProfileSettingsForm({
         .eq("id", userId);
       if (error) {
         logger.warn("settings.profile_update_failed", { message: error.message });
-        toast.error("No se pudo guardar.");
+        toast.error("Couldn't save changes.");
         return;
       }
       logger.info("settings.profile_updated", { userId });
-      toast.success("Cambios guardados");
+      toast.success("Saved.");
       router.refresh();
     } catch (err) {
       logger.error("settings.profile_exception", { error: err });
-      toast.error("Error de red.");
+      toast.error("Network error.");
     } finally {
       setSubmitting(false);
     }
@@ -72,7 +72,7 @@ export function ProfileSettingsForm({
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      toast.error("El avatar debe pesar menos de 2 MB");
+      toast.error("Avatar must be under 2 MB");
       return;
     }
     setUploadingAvatar(true);
@@ -85,7 +85,7 @@ export function ProfileSettingsForm({
         .upload(path, file, { upsert: true, contentType: file.type });
       if (uploadErr) {
         logger.error("settings.avatar_upload_failed", { message: uploadErr.message });
-        toast.error("No se pudo subir el avatar.");
+        toast.error("Couldn't upload avatar.");
         return;
       }
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
@@ -95,12 +95,12 @@ export function ProfileSettingsForm({
         .eq("id", userId);
       if (updateErr) {
         logger.error("settings.avatar_save_failed", { message: updateErr.message });
-        toast.error("No se pudo guardar el avatar.");
+        toast.error("Couldn't save avatar.");
         return;
       }
       setAvatarUrl(data.publicUrl);
       logger.info("settings.avatar_updated", { userId });
-      toast.success("Avatar actualizado");
+      toast.success("Avatar updated.");
       router.refresh();
     } catch (err) {
       logger.error("settings.avatar_exception", { error: err });
@@ -119,13 +119,13 @@ export function ProfileSettingsForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      <section className="rounded-lg border border-border bg-surface-3 p-5">
-        <h2 className="text-base font-semibold text-white">Avatar</h2>
-        <p className="mt-1 text-sm text-muted-foreground">
-          PNG o JPG hasta 2 MB.
+      <section className="border border-rule bg-ivory p-7">
+        <div className="eyebrow mb-1">Avatar</div>
+        <p className="text-sm text-text-2">
+          PNG or JPG up to 2 MB. Shown to buyers across NoComiss.
         </p>
-        <div className="mt-4 flex items-center gap-4">
-          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-2 text-xl font-bold text-white">
+        <div className="mt-5 flex items-center gap-4">
+          <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-rule-strong bg-crema-2 font-serif text-xl font-medium text-text">
             {avatarUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
@@ -136,16 +136,16 @@ export function ProfileSettingsForm({
           <div className="flex flex-col gap-2">
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               onClick={() => fileRef.current?.click()}
               disabled={uploadingAvatar}
             >
               {uploadingAvatar ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
               ) : (
-                <Camera className="h-4 w-4" />
+                <Camera className="h-3.5 w-3.5" />
               )}
-              {uploadingAvatar ? "Subiendo…" : "Subir nuevo"}
+              {uploadingAvatar ? "Uploading…" : "Upload new"}
             </Button>
             <input
               ref={fileRef}
@@ -154,35 +154,35 @@ export function ProfileSettingsForm({
               className="sr-only"
               onChange={handleAvatarChange}
             />
-            <p className="text-xs text-muted-foreground">JPG, PNG o WebP · Máx 2 MB</p>
+            <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-3">
+              JPG · PNG · WebP — max 2 MB
+            </p>
           </div>
         </div>
       </section>
 
-      <section className="space-y-4 rounded-lg border border-border bg-surface-3 p-5">
-        <h2 className="text-base font-semibold text-white">Perfil</h2>
+      <section className="space-y-4 border border-rule bg-ivory p-7">
+        <div className="eyebrow mb-2">Profile</div>
 
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input id="email" value={email} disabled readOnly />
-          <p className="text-xs text-muted-foreground">
-            Contacta soporte para cambiar tu email.
-          </p>
+          <p className="text-xs text-text-3">Email changes require support.</p>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="nombre">Nombre completo</Label>
+          <Label htmlFor="nombre">Full name</Label>
           <Input id="nombre" aria-invalid={!!errors.nombre} {...register("nombre")} />
           {errors.nombre ? (
-            <p className="text-xs text-error">{errors.nombre.message}</p>
+            <p className="text-xs text-rust">{errors.nombre.message}</p>
           ) : null}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="bio">Bio (opcional)</Label>
+          <Label htmlFor="bio">Bio (optional)</Label>
           <Input
             id="bio"
-            placeholder="Propietario en Bogotá, vendiendo apartamento en Chapinero"
+            placeholder="Homeowner in Miami, selling a 3BR ranch"
             maxLength={500}
             {...register("bio")}
           />
@@ -192,11 +192,11 @@ export function ProfileSettingsForm({
       <div className="flex justify-end">
         <Button type="submit" disabled={submitting || !isDirty}>
           {submitting ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
           ) : (
-            <Save className="h-4 w-4" />
+            <Save className="h-3.5 w-3.5" />
           )}
-          Guardar cambios
+          Save changes
         </Button>
       </div>
     </form>

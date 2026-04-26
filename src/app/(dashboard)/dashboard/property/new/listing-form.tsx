@@ -19,9 +19,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  CIUDADES,
-  TIPOS_INMUEBLE,
-  TIPOS_NEGOCIO,
+  PROPERTY_TYPES,
+  US_STATES,
   listingSchema,
   type ListingInput,
 } from "@/lib/utils/validation";
@@ -58,16 +57,18 @@ export function ListingForm({ empresaId }: Props) {
   } = useForm<ListingInput>({
     resolver: zodResolver(listingSchema),
     defaultValues: {
-      tipo_negocio: "venta",
-      tipo_inmueble: "",
-      ciudad: "",
-      ubicacion: "",
-      habitaciones: 0,
-      banos: 0,
-      parqueaderos: 0,
-      area_m2: 0,
-      precio: 0,
-      descripcion: "",
+      tipo_inmueble: "single_family",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "FL",
+      zip_code: "",
+      bedrooms: 0,
+      bathrooms: 0,
+      garage_spaces: 0,
+      sqft: 0,
+      price: 0,
+      description: "",
     },
   });
 
@@ -75,14 +76,13 @@ export function ListingForm({ empresaId }: Props) {
     (incoming: FileList | File[]) => {
       const next: PhotoTicket[] = [];
       const rejected: string[] = [];
-
       for (const file of Array.from(incoming)) {
         if (!ACCEPTED.includes(file.type)) {
-          rejected.push(`${file.name}: formato no soportado`);
+          rejected.push(`${file.name}: unsupported format`);
           continue;
         }
         if (file.size > MAX_PHOTO_MB * 1024 * 1024) {
-          rejected.push(`${file.name}: pesa más de ${MAX_PHOTO_MB} MB`);
+          rejected.push(`${file.name}: over ${MAX_PHOTO_MB} MB`);
           continue;
         }
         next.push({
@@ -91,7 +91,6 @@ export function ListingForm({ empresaId }: Props) {
           previewUrl: URL.createObjectURL(file),
         });
       }
-
       if (rejected.length > 0) toast.error(rejected.join("\n"));
       if (next.length > 0) {
         setPhotos((prev) => {
@@ -113,30 +112,26 @@ export function ListingForm({ empresaId }: Props) {
     [handleFiles],
   );
 
-  const removePhoto = useCallback(
-    (id: string) => {
-      setPhotos((prev) => {
-        const target = prev.find((p) => p.id === id);
-        if (target) URL.revokeObjectURL(target.previewUrl);
-        return prev.filter((p) => p.id !== id);
-      });
-      setHeroId((current) => (current === id ? null : current));
-    },
-    [],
-  );
+  const removePhoto = useCallback((id: string) => {
+    setPhotos((prev) => {
+      const target = prev.find((p) => p.id === id);
+      if (target) URL.revokeObjectURL(target.previewUrl);
+      return prev.filter((p) => p.id !== id);
+    });
+    setHeroId((current) => (current === id ? null : current));
+  }, []);
 
   const onSubmit = useCallback(
     async (values: ListingInput) => {
       if (photos.length === 0) {
-        toast.error("Sube al menos una foto del inmueble.");
+        toast.error("Add at least one photo of your home.");
         return;
       }
 
       setSubmitting(true);
-      setSubmitProgress("Creando inmueble…");
+      setSubmitProgress("Creating listing…");
 
       try {
-        // 1) Create the listing
         const createRes = await fetch("/api/property", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -145,12 +140,11 @@ export function ListingForm({ empresaId }: Props) {
         const createBody = await createRes.json();
         if (!createRes.ok) {
           logger.warn("listing.create_failed", { body: createBody });
-          throw new Error(createBody?.message || "No se pudo crear el inmueble");
+          throw new Error(createBody?.message || "Couldn't create the listing");
         }
         const propertyId: string = createBody.property.id;
         logger.info("listing.created", { propertyId });
 
-        // 2) Upload each photo and register media row
         const orderedHeroFirst = heroId
           ? [
               ...photos.filter((p) => p.id === heroId),
@@ -160,7 +154,7 @@ export function ListingForm({ empresaId }: Props) {
 
         for (let i = 0; i < orderedHeroFirst.length; i++) {
           const ticket = orderedHeroFirst[i];
-          setSubmitProgress(`Subiendo foto ${i + 1} de ${orderedHeroFirst.length}…`);
+          setSubmitProgress(`Uploading photo ${i + 1} of ${orderedHeroFirst.length}…`);
 
           const path = generateStoragePath(empresaId, propertyId, ticket.file.name);
           const upload = await uploadFile(ticket.file, "listing-photos", path);
@@ -180,16 +174,15 @@ export function ListingForm({ empresaId }: Props) {
           if (!mediaRes.ok) {
             const err = await mediaRes.json().catch(() => ({}));
             logger.warn("listing.media_register_failed", { propertyId, err });
-            // Don't fail hard — listing exists, photo's in storage. Surface and keep going.
-            toast.error(`Foto ${i + 1}: registro falló, pero el archivo quedó subido.`);
+            toast.error(`Photo ${i + 1}: registered upload but DB insert failed.`);
           }
         }
 
-        toast.success("Inmueble publicado.");
+        toast.success("Your listing is live.");
         router.push(`/dashboard/property/${propertyId}`);
         router.refresh();
       } catch (err) {
-        const message = err instanceof Error ? err.message : "Error desconocido";
+        const message = err instanceof Error ? err.message : "Unknown error";
         logger.error("listing.submit_exception", { message });
         toast.error(message);
       } finally {
@@ -204,23 +197,24 @@ export function ListingForm({ empresaId }: Props) {
   const heroLabel = useMemo(() => {
     if (!heroId) return null;
     const idx = photos.findIndex((p) => p.id === heroId);
-    return idx >= 0 ? `Portada: foto ${idx + 1}` : null;
+    return idx >= 0 ? `Hero: photo ${idx + 1}` : null;
   }, [heroId, photos]);
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
-      {/* Operación */}
-      <Section
-        title="Operación"
-        hint="Decide qué quieres publicar y dónde queda."
-      >
-        <Field label="Tipo de negocio" htmlFor="tipo_negocio" error={errors.tipo_negocio?.message}>
+      {/* ─── Property type + Address ─── */}
+      <Section title="The home" hint="Tell us what you're selling and where it lives.">
+        <Field
+          label="Property type"
+          htmlFor="tipo_inmueble"
+          error={errors.tipo_inmueble?.message}
+        >
           <Controller
-            name="tipo_negocio"
+            name="tipo_inmueble"
             control={control}
             render={({ field }) => (
-              <div className="grid grid-cols-2 gap-2" id="tipo_negocio">
-                {TIPOS_NEGOCIO.map((opt) => {
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {PROPERTY_TYPES.map((opt) => {
                   const active = field.value === opt.value;
                   return (
                     <button
@@ -228,10 +222,10 @@ export function ListingForm({ empresaId }: Props) {
                       key={opt.value}
                       onClick={() => field.onChange(opt.value)}
                       className={cn(
-                        "h-10 rounded-sm border text-sm font-semibold transition-all",
+                        "h-11 rounded-sm border text-sm font-semibold transition-all",
                         active
-                          ? "border-brand-green bg-brand-green/15 text-brand-green"
-                          : "border-border bg-surface-3 text-muted-foreground hover:border-brand-green/50 hover:text-white",
+                          ? "border-espresso bg-espresso text-text-on-dark"
+                          : "border-rule-strong bg-ivory text-text-2 hover:border-espresso/50 hover:text-text",
                       )}
                     >
                       {opt.label}
@@ -244,168 +238,211 @@ export function ListingForm({ empresaId }: Props) {
         </Field>
 
         <Field
-          label="Tipo de inmueble"
-          htmlFor="tipo_inmueble"
-          error={errors.tipo_inmueble?.message}
+          label="Street address"
+          htmlFor="address_line1"
+          error={errors.address_line1?.message}
         >
-          <Controller
-            name="tipo_inmueble"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value || undefined} onValueChange={field.onChange}>
-                <SelectTrigger id="tipo_inmueble" aria-invalid={!!errors.tipo_inmueble}>
-                  <SelectValue placeholder="Selecciona un tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  {TIPOS_INMUEBLE.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
-          />
-        </Field>
-
-        <Field label="Ciudad" htmlFor="ciudad" error={errors.ciudad?.message}>
-          <Controller
-            name="ciudad"
-            control={control}
-            render={({ field }) => (
-              <Select value={field.value || undefined} onValueChange={field.onChange}>
-                <SelectTrigger id="ciudad" aria-invalid={!!errors.ciudad}>
-                  <SelectValue placeholder="Selecciona una ciudad" />
-                </SelectTrigger>
-                <SelectContent>
-                  {CIUDADES.map((opt) => (
-                    <SelectItem key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            )}
+          <Input
+            id="address_line1"
+            placeholder="1234 Ocean Dr"
+            aria-invalid={!!errors.address_line1}
+            {...register("address_line1")}
           />
         </Field>
 
         <Field
-          label="Barrio o sector"
-          htmlFor="ubicacion"
-          error={errors.ubicacion?.message}
-          hint="Ej: Chapinero Alto, El Poblado, Granada"
+          label="Apt / suite (optional)"
+          htmlFor="address_line2"
+          error={errors.address_line2?.message}
         >
           <Input
-            id="ubicacion"
-            placeholder="Chapinero Alto"
-            aria-invalid={!!errors.ubicacion}
-            {...register("ubicacion")}
+            id="address_line2"
+            placeholder="Apt 4B"
+            {...register("address_line2")}
           />
         </Field>
-      </Section>
 
-      {/* Características */}
-      <Section title="Características" hint="Lo que un comprador quiere saber primero.">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <Field label="Habitaciones" htmlFor="habitaciones" error={errors.habitaciones?.message}>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_120px_140px]">
+          <Field label="City" htmlFor="city" error={errors.city?.message}>
             <Input
-              id="habitaciones"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              aria-invalid={!!errors.habitaciones}
-              {...register("habitaciones")}
+              id="city"
+              placeholder="Miami"
+              aria-invalid={!!errors.city}
+              {...register("city")}
             />
           </Field>
-          <Field label="Baños" htmlFor="banos" error={errors.banos?.message}>
-            <Input
-              id="banos"
-              type="number"
-              min={0}
-              inputMode="numeric"
-              aria-invalid={!!errors.banos}
-              {...register("banos")}
+          <Field label="State" htmlFor="state" error={errors.state?.message}>
+            <Controller
+              name="state"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger id="state" aria-invalid={!!errors.state}>
+                    <SelectValue placeholder="State" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {US_STATES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             />
           </Field>
-          <Field label="Parqueaderos" htmlFor="parqueaderos" error={errors.parqueaderos?.message}>
+          <Field label="ZIP" htmlFor="zip_code" error={errors.zip_code?.message}>
             <Input
-              id="parqueaderos"
-              type="number"
-              min={0}
+              id="zip_code"
+              placeholder="33139"
               inputMode="numeric"
-              aria-invalid={!!errors.parqueaderos}
-              {...register("parqueaderos")}
-            />
-          </Field>
-          <Field label="Área (m²)" htmlFor="area_m2" error={errors.area_m2?.message}>
-            <Input
-              id="area_m2"
-              type="number"
-              min={10}
-              inputMode="numeric"
-              aria-invalid={!!errors.area_m2}
-              {...register("area_m2")}
+              aria-invalid={!!errors.zip_code}
+              {...register("zip_code")}
             />
           </Field>
         </div>
       </Section>
 
-      {/* Precio */}
-      <Section title="Precio" hint="En pesos colombianos. Lo puedes ajustar después.">
-        <Field label="Precio (COP)" htmlFor="precio" error={errors.precio?.message}>
-          <Input
-            id="precio"
-            type="number"
-            min={100000}
-            step={1000}
-            inputMode="numeric"
-            placeholder="450000000"
-            aria-invalid={!!errors.precio}
-            {...register("precio")}
-          />
+      {/* ─── Specs ─── */}
+      <Section title="Specs" hint="What buyers want to know first.">
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <Field label="Bedrooms" htmlFor="bedrooms" error={errors.bedrooms?.message}>
+            <Input
+              id="bedrooms"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              aria-invalid={!!errors.bedrooms}
+              {...register("bedrooms")}
+            />
+          </Field>
+          <Field label="Bathrooms" htmlFor="bathrooms" error={errors.bathrooms?.message}>
+            <Input
+              id="bathrooms"
+              type="number"
+              min={0}
+              step={0.5}
+              inputMode="decimal"
+              aria-invalid={!!errors.bathrooms}
+              {...register("bathrooms")}
+            />
+          </Field>
+          <Field
+            label="Garage"
+            htmlFor="garage_spaces"
+            error={errors.garage_spaces?.message}
+          >
+            <Input
+              id="garage_spaces"
+              type="number"
+              min={0}
+              inputMode="numeric"
+              aria-invalid={!!errors.garage_spaces}
+              {...register("garage_spaces")}
+            />
+          </Field>
+          <Field label="Square feet" htmlFor="sqft" error={errors.sqft?.message}>
+            <Input
+              id="sqft"
+              type="number"
+              min={100}
+              inputMode="numeric"
+              aria-invalid={!!errors.sqft}
+              {...register("sqft")}
+            />
+          </Field>
+        </div>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <Field
+            label="Year built (optional)"
+            htmlFor="year_built"
+            error={errors.year_built?.message}
+          >
+            <Input
+              id="year_built"
+              type="number"
+              inputMode="numeric"
+              placeholder="1998"
+              {...register("year_built")}
+            />
+          </Field>
+          <Field
+            label="HOA monthly (optional)"
+            htmlFor="hoa_monthly"
+            error={errors.hoa_monthly?.message}
+          >
+            <Input
+              id="hoa_monthly"
+              type="number"
+              min={0}
+              inputMode="decimal"
+              placeholder="0"
+              {...register("hoa_monthly")}
+            />
+          </Field>
+        </div>
+      </Section>
+
+      {/* ─── Price ─── */}
+      <Section title="Asking price" hint="USD. You can edit later.">
+        <Field label="Price" htmlFor="price" error={errors.price?.message}>
+          <div className="relative">
+            <span className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 font-mono text-base text-text-3">
+              $
+            </span>
+            <Input
+              id="price"
+              type="number"
+              min={10000}
+              step={1000}
+              inputMode="numeric"
+              placeholder="450000"
+              aria-invalid={!!errors.price}
+              className="pl-7"
+              {...register("price")}
+            />
+          </div>
         </Field>
       </Section>
 
-      {/* Descripción */}
+      {/* ─── Description ─── */}
       <Section
-        title="Descripción"
-        hint="Cuenta lo bueno: vista, terraza, vecindario, remodelación reciente."
+        title="The story"
+        hint="Why someone should fall in love with this home. Plain English. Be specific."
       >
-        <Field label="Descripción" htmlFor="descripcion" error={errors.descripcion?.message}>
+        <Field label="Description" htmlFor="description" error={errors.description?.message}>
           <Textarea
-            id="descripcion"
+            id="description"
             rows={6}
-            placeholder="Apartamento en piso alto, vista a los cerros, totalmente remodelado en 2024…"
-            aria-invalid={!!errors.descripcion}
-            {...register("descripcion")}
+            placeholder="Quiet street, two blocks to the beach. Renovated kitchen 2024. The kind of front porch where you actually use the rocking chair…"
+            aria-invalid={!!errors.description}
+            {...register("description")}
           />
         </Field>
       </Section>
 
-      {/* Fotos */}
-      <Section
-        title="Fotos"
-        hint="Mínimo 1, idealmente 5+. Buena luz natural y horizontal."
-      >
+      {/* ─── Photos ─── */}
+      <Section title="Photos" hint="At least 1. Five or more is best. Daylight, horizontal.">
         <div
           onDragOver={(e) => {
             e.preventDefault();
             e.stopPropagation();
           }}
           onDrop={onDrop}
-          className="rounded-lg border-2 border-dashed border-border bg-surface-2 p-8 text-center transition-colors hover:border-brand-green/60"
+          className="rounded-sm border-2 border-dashed border-rule-strong bg-paper p-10 text-center transition-colors hover:border-espresso/60"
         >
-          <Upload className="mx-auto mb-3 h-6 w-6 text-muted-foreground" aria-hidden />
-          <p className="text-sm font-semibold text-white">
-            Arrastra tus fotos aquí o
+          <Upload className="mx-auto mb-3 h-6 w-6 text-text-3" aria-hidden />
+          <p className="font-serif text-lg font-medium text-text">
+            Drop your high-res photos here
           </p>
+          <p className="mt-1 text-sm text-text-3">JPG · PNG · WebP — up to {MAX_PHOTO_MB} MB each</p>
           <button
             type="button"
             onClick={() => inputRef.current?.click()}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-sm border border-border bg-surface-3 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-foreground transition-all hover:border-brand-green hover:text-white"
+            className="mt-5 inline-flex items-center gap-1.5 rounded-sm border border-rule-strong bg-ivory px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-text transition-all hover:border-espresso"
           >
             <ImageIcon className="h-3.5 w-3.5" aria-hidden />
-            Seleccionar archivos
+            Select photos
           </button>
           <input
             ref={inputRef}
@@ -418,57 +455,53 @@ export function ListingForm({ empresaId }: Props) {
               e.target.value = "";
             }}
           />
-          <p className="mt-3 text-xs text-muted-foreground">
-            JPG, PNG o WEBP · Máx {MAX_PHOTO_MB} MB c/u
-          </p>
         </div>
 
         {photoCount > 0 ? (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                {photoCount} foto{photoCount === 1 ? "" : "s"} lista
-                {photoCount === 1 ? "" : "s"}
+              <div className="data-key">
+                {photoCount} photo{photoCount === 1 ? "" : "s"}
                 {heroLabel ? ` · ${heroLabel}` : ""}
               </div>
             </div>
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
               {photos.map((p, idx) => {
                 const isHero = p.id === heroId;
                 return (
                   <li
                     key={p.id}
                     className={cn(
-                      "group relative overflow-hidden rounded-md border bg-surface-3",
-                      isHero ? "border-brand-green" : "border-border",
+                      "group relative overflow-hidden border bg-ivory",
+                      isHero ? "border-coral" : "border-rule-strong",
                     )}
                   >
                     <div className="aspect-square w-full">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={p.previewUrl}
-                        alt={`Foto ${idx + 1}`}
+                        alt={`Photo ${idx + 1}`}
                         className="h-full w-full object-cover"
                       />
                     </div>
                     {isHero ? (
-                      <div className="absolute left-2 top-2 inline-flex items-center gap-1 rounded-pill bg-brand-green px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                        <Star className="h-2.5 w-2.5 fill-white" aria-hidden /> Portada
+                      <div className="absolute left-2 top-2 inline-flex items-center gap-1 bg-coral px-2 py-0.5 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-white">
+                        <Star className="h-2.5 w-2.5 fill-white" aria-hidden /> Hero
                       </div>
                     ) : null}
-                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-black/60 p-2 opacity-0 backdrop-blur-sm transition-opacity duration-200 group-hover:opacity-100">
+                    <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-espresso/80 p-2 opacity-0 backdrop-blur-sm transition-opacity duration-180 group-hover:opacity-100">
                       <button
                         type="button"
                         onClick={() => setHeroId(p.id)}
                         disabled={isHero}
-                        className="inline-flex items-center gap-1 rounded-sm bg-surface-3 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-foreground transition-colors hover:text-brand-green disabled:opacity-40"
+                        className="inline-flex items-center gap-1 rounded-sm bg-ivory px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-text transition-colors hover:text-coral disabled:opacity-40"
                       >
-                        <Star className="h-3 w-3" aria-hidden /> Portada
+                        <Star className="h-3 w-3" aria-hidden /> Hero
                       </button>
                       <button
                         type="button"
                         onClick={() => removePhoto(p.id)}
-                        className="inline-flex items-center gap-1 rounded-sm bg-surface-3 px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-error transition-colors hover:bg-error/15"
+                        className="inline-flex items-center gap-1 rounded-sm bg-ivory px-2 py-1 font-mono text-[9px] font-semibold uppercase tracking-[0.14em] text-rust transition-colors hover:bg-rust/15"
                       >
                         <Trash2 className="h-3 w-3" aria-hidden />
                       </button>
@@ -481,7 +514,8 @@ export function ListingForm({ empresaId }: Props) {
         ) : null}
       </Section>
 
-      <div className="sticky bottom-0 -mx-4 border-t border-border bg-surface-1/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
+      {/* ─── Submit ─── */}
+      <div className="sticky bottom-0 -mx-4 border-t border-rule bg-crema/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
         <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
           <Button
             type="button"
@@ -489,11 +523,11 @@ export function ListingForm({ empresaId }: Props) {
             onClick={() => router.push("/dashboard")}
             disabled={submitting}
           >
-            Cancelar
+            Cancel
           </Button>
-          <Button type="submit" size="lg" disabled={submitting}>
-            {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
-            {submitProgress ?? "Publicar inmueble"}
+          <Button type="submit" variant="spark" size="lg" disabled={submitting}>
+            {submitting ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null}
+            {submitProgress ?? "Publish listing"}
           </Button>
         </div>
       </div>
@@ -511,10 +545,10 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-lg border border-border bg-surface-3 p-5">
-      <header className="mb-4">
-        <h2 className="text-base font-semibold text-white">{title}</h2>
-        {hint ? <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p> : null}
+    <section className="rounded-sm border border-rule bg-ivory p-7">
+      <header className="mb-5">
+        <div className="eyebrow mb-1.5">{title}</div>
+        {hint ? <p className="text-sm text-text-2">{hint}</p> : null}
       </header>
       <div className="space-y-4">{children}</div>
     </section>
@@ -539,11 +573,11 @@ function Field({
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       {error ? (
-        <p role="alert" className="text-xs text-error">
+        <p role="alert" className="text-xs text-rust">
           {error}
         </p>
       ) : hint ? (
-        <p className="text-xs text-muted-foreground">{hint}</p>
+        <p className="text-xs text-text-3">{hint}</p>
       ) : null}
     </div>
   );

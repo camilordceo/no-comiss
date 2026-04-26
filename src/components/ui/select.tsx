@@ -16,18 +16,20 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      "flex h-10 w-full items-center justify-between rounded-sm border border-border bg-surface-3 px-3 py-2 text-sm text-foreground",
-      "transition-colors duration-150 focus:outline-none focus:border-brand-green",
+      "flex h-11 w-full items-center justify-between rounded-sm border border-rule-strong bg-ivory px-3.5 py-2",
+      "text-[15px] text-text",
+      "transition-colors duration-180 hover:border-espresso/50",
+      "focus:outline-none focus:border-espresso",
       "disabled:cursor-not-allowed disabled:opacity-50",
-      "data-[placeholder]:text-muted-foreground",
-      "aria-[invalid=true]:border-error",
+      "data-[placeholder]:text-text-3",
+      "aria-[invalid=true]:border-rust",
       className,
     )}
     {...props}
   >
     {children}
     <SelectPrimitive.Icon asChild>
-      <ChevronDown className="h-4 w-4 opacity-60" />
+      <ChevronDown className="h-4 w-4 text-text-3" />
     </SelectPrimitive.Icon>
   </SelectPrimitive.Trigger>
 ));
@@ -42,7 +44,7 @@ const SelectContent = React.forwardRef<
       ref={ref}
       position={position}
       className={cn(
-        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-md border border-border bg-surface-3 text-foreground shadow-xl",
+        "relative z-50 max-h-72 min-w-[8rem] overflow-hidden rounded-sm border border-rule-strong bg-ivory text-text",
         "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
         position === "popper" && "translate-y-1",
         className,
@@ -62,15 +64,15 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-sm outline-none",
-      "focus:bg-surface-4 focus:text-white data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
+      "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-3 text-sm outline-none",
+      "focus:bg-crema-2 focus:text-text data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
       className,
     )}
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
       <SelectPrimitive.ItemIndicator>
-        <Check className="h-4 w-4 text-brand-green" />
+        <Check className="h-4 w-4 text-coral" />
       </SelectPrimitive.ItemIndicator>
     </span>
     <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

@@ -1,66 +1,68 @@
 import Link from "next/link";
-import { ArrowRight, Camera, MessageSquare, Sparkles } from "lucide-react";
+import { ArrowRight, Camera, MessageSquare, Sparkles, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function OverviewEmptyState() {
   return (
-    <div className="space-y-6">
-      <div className="rounded-xl border border-border bg-surface-2 p-8 md:p-10">
-        <div className="flex flex-col items-start gap-6 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-xl space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-pill border border-brand-green/30 bg-brand-green/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.1em] text-brand-green">
-              <Sparkles className="h-3.5 w-3.5" aria-hidden />
-              Bienvenido a Rentmies
-            </div>
-            <h1 className="text-[clamp(1.5rem,4vw,2rem)] font-bold leading-tight tracking-tight text-white">
-              Publica tu primer inmueble.
+    <div className="space-y-10">
+      <header className="rounded-sm border border-rule bg-ivory p-8 md:p-12">
+        <div className="flex flex-col items-start gap-7 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-xl space-y-4">
+            <div className="eyebrow eyebrow-coral">Welcome to your terminal</div>
+            <h1 className="font-serif text-[clamp(2rem,5vw,3rem)] font-medium leading-[1.05] tracking-[-0.01em] text-text">
+              <span className="italic">Your home isn&apos;t listed yet.</span>
             </h1>
-            <p className="text-base text-muted-foreground">
-              Sube las fotos, los datos básicos y el precio. Nuestra IA empieza a pautarlo
-              en WhatsApp y a responder compradores 24/7. Sin comisiones.
+            <p className="text-base text-text-2 md:text-lg">
+              Upload your photos, set your price. AI writes the listing, runs the
+              ads, screens the leads. You keep the commission.
             </p>
           </div>
-          <Button asChild size="lg">
+          <Button asChild variant="spark" size="lg">
             <Link href="/dashboard/property/new">
-              Publicar inmueble <ArrowRight className="h-4 w-4" />
+              List my home <ArrowRight className="h-3.5 w-3.5" />
             </Link>
           </Button>
         </div>
-      </div>
+      </header>
 
-      <div className="grid gap-3 md:grid-cols-3">
-        {[
-          {
-            icon: Camera,
-            title: "Datos del inmueble",
-            body: "Tipo, ciudad, área, precio y unas fotos buenas. Sin papeleo.",
-            step: "1",
-          },
-          {
-            icon: Sparkles,
-            title: "IA pauta por ti",
-            body: "Genera el copy, segmenta y publica en los canales correctos.",
-            step: "2",
-          },
-          {
-            icon: MessageSquare,
-            title: "Recibes interesados",
-            body: "El agente filtra y te pasa solo los compradores reales.",
-            step: "3",
-          },
-        ].map(({ icon: Icon, title, body, step }) => (
-          <div
-            key={title}
-            className="rounded-lg border border-border bg-surface-3 p-5 card-hover stagger-item"
-          >
-            <div className="mb-4 flex h-9 w-9 items-center justify-center rounded-md bg-brand-green/15">
-              <Icon className="h-4 w-4 text-brand-green" aria-hidden />
-            </div>
-            <div className="label-form mb-1">Paso {step}</div>
-            <h3 className="mb-1 text-base font-semibold text-white">{title}</h3>
-            <p className="text-sm text-muted-foreground">{body}</p>
-          </div>
-        ))}
+      <div>
+        <div className="eyebrow mb-4">How it works</div>
+        <div className="grid gap-3 md:grid-cols-3">
+          {[
+            {
+              step: "01",
+              icon: Upload,
+              title: "Upload your home",
+              body: "Address, photos, asking price. Five minutes max.",
+            },
+            {
+              step: "02",
+              icon: Sparkles,
+              title: "AI takes the listing live",
+              body: "Copy, ads, screening — automated and on around the clock.",
+            },
+            {
+              step: "03",
+              icon: MessageSquare,
+              title: "Real offers in your inbox",
+              body: "Skip the agent chat. We hand you serious buyers.",
+            },
+          ].map(({ step, icon: Icon, title, body }) => (
+            <article
+              key={step}
+              className="hover-lift border border-rule bg-ivory p-7"
+            >
+              <div className="flex items-center justify-between">
+                <div className="data-key">Step {step}</div>
+                <Icon className="h-4 w-4 text-text-3" aria-hidden />
+              </div>
+              <h3 className="mt-5 font-serif text-xl font-medium leading-tight text-text">
+                {title}
+              </h3>
+              <p className="mt-2 text-sm leading-relaxed text-text-2">{body}</p>
+            </article>
+          ))}
+        </div>
       </div>
     </div>
   );

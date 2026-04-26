@@ -15,23 +15,26 @@ export interface SessionUser {
 }
 
 export const STATUS_LABEL: Record<ListingStatus, string> = {
-  draft: "Borrador",
-  onboarding: "En proceso",
-  ready: "Listo para publicar",
-  active: "Publicado",
-  paused: "Pausado",
-  under_offer: "En negociación",
-  sold: "Cerrado",
-  expired: "Vencido",
+  draft: "Draft",
+  onboarding: "In setup",
+  ready: "Ready",
+  active: "Live",
+  paused: "Paused",
+  under_offer: "Under offer",
+  sold: "Sold",
+  expired: "Expired",
 };
 
-export const STATUS_PILL_CLASS: Record<ListingStatus, string> = {
-  draft: "status-draft",
-  onboarding: "status-warning",
-  ready: "status-warning",
-  active: "status-active",
-  paused: "status-paused",
-  under_offer: "status-active",
-  sold: "status-draft",
-  expired: "status-paused",
+export const STATUS_BADGE_VARIANT: Record<
+  ListingStatus,
+  "draft" | "ready" | "active" | "paused" | "sold" | "warning" | "info"
+> = {
+  draft: "draft",
+  onboarding: "warning",
+  ready: "ready",
+  active: "active",
+  paused: "paused",
+  under_offer: "info",
+  sold: "sold",
+  expired: "paused",
 };

@@ -4,7 +4,7 @@ import { listingSchema } from "@/lib/utils/validation";
 import { buildListingSlug } from "@/lib/utils/slugify";
 import { logger } from "@/lib/utils/logger";
 
-/** POST /api/property — create a complete listing in one shot. */
+/** POST /api/property — create a complete US listing in one shot. */
 export async function POST(request: NextRequest) {
   const supabase = await createClient();
   const {
@@ -38,29 +38,37 @@ export async function POST(request: NextRequest) {
   }
 
   const d = parsed.data;
-  const slugBase = buildListingSlug(d.ubicacion, d.ciudad, d.tipo_negocio);
+  const slugBase = buildListingSlug(d.address_line1, d.city, d.state);
   const stamp = Date.now().toString(36);
   const slug = `${slugBase}-${stamp}`;
-  const codigo = `RM-${stamp.toUpperCase()}`;
+  const codigo = `NC-${stamp.toUpperCase()}`;
+  const ubicacion = `${d.address_line1}, ${d.city}, ${d.state} ${d.zip_code}`;
 
   const { data, error } = await supabase
     .from("propiedades")
     .insert({
       empresa_id: profile.empresa_id,
       codigo,
-      source: "rentmies",
-      country: "CO",
-      currency: "COP",
-      tipo_negocio: d.tipo_negocio,
+      source: "nocomiss",
+      country: "US",
+      currency: "USD",
+      tipo_negocio: "venta",
       tipo_inmueble: d.tipo_inmueble,
-      ciudad: d.ciudad,
-      ubicacion: d.ubicacion,
-      habitaciones: d.habitaciones,
-      banos: d.banos,
-      parqueaderos: d.parqueaderos,
-      sqft: d.area_m2,
-      precio: d.precio,
-      descripcion: d.descripcion,
+      address_line1: d.address_line1,
+      address_line2: d.address_line2 || null,
+      ciudad: d.city,
+      state: d.state,
+      zip_code: d.zip_code,
+      ubicacion,
+      habitaciones: d.bedrooms,
+      banos: d.bathrooms,
+      parqueaderos: d.garage_spaces,
+      garage_spaces: d.garage_spaces,
+      sqft: d.sqft,
+      year_built: d.year_built ?? null,
+      hoa_monthly: d.hoa_monthly ?? null,
+      precio: d.price,
+      descripcion: d.description,
       slug,
       listing_status: "draft",
       onboarding_step: 0,
@@ -70,9 +78,15 @@ export async function POST(request: NextRequest) {
 
   if (error) {
     logger.error("property.create_failed", { message: error.message });
-    return NextResponse.json({ error: "create_failed", message: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: "create_failed", message: error.message },
+      { status: 500 },
+    );
   }
 
-  logger.info("property.created", { propertyId: data.id, empresaId: profile.empresa_id });
+  logger.info("property.created", {
+    propertyId: data.id,
+    empresaId: profile.empresa_id,
+  });
   return NextResponse.json({ property: data });
 }

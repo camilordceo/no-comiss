@@ -7,7 +7,19 @@
       "Bash(NODE_OPTIONS='--max-old-space-size=4096' node_modules/.bin/next build)",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Read(//c/Users/camil/.claude/skills/**)",
+      "Read(//c/Users/camil/.claude/**)",
+      "Bash(NODE_OPTIONS='--max-old-space-size=4096' npx tsc --noEmit)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; npx tsc --noEmit 2>&1 | Select-Object -First 100)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; $env:NEXT_PUBLIC_SUPABASE_URL = \"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY = \"placeholder\"; $env:SUPABASE_SERVICE_ROLE_KEY = \"placeholder\"; $env:NEXT_PUBLIC_APP_URL = \"http://localhost:3000\"; npx next build 2>&1 | Select-Object -Last 80)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; npx tsc --noEmit 2>&1 | Select-Object -First 30)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; $env:NEXT_PUBLIC_SUPABASE_URL = \"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY = \"placeholder\"; $env:SUPABASE_SERVICE_ROLE_KEY = \"placeholder\"; $env:NEXT_PUBLIC_APP_URL = \"http://localhost:3000\"; npx next build 2>&1 | Select-Object -Last 30)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; npx tsc --noEmit 2>&1 | Select-Object -First 80)",
+      "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; $env:NEXT_PUBLIC_SUPABASE_URL = \"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY = \"placeholder\"; $env:SUPABASE_SERVICE_ROLE_KEY = \"placeholder\"; $env:NEXT_PUBLIC_APP_URL = \"http://localhost:3000\"; npx next build 2>&1 | Select-Object -Last 50)",
+      "Bash(npx next *)",
+      "PowerShell(& npx next build 2>&1 | Select-Object -Last 120)",
+      "PowerShell(npm run *)"
     ]
   }
 }

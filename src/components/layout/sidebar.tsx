@@ -1,15 +1,26 @@
 import Link from "next/link";
 import { SidebarNav } from "./nav-items";
 import { UserCard } from "./user-card";
+import { ContentNudgeCard } from "@/components/dashboard/content-nudge-card";
+import type { ContentScoreResult } from "@/lib/content/score";
 
 interface SidebarProps {
   email: string;
   name: string;
   avatarUrl: string | null;
   empresaName?: string | null;
+  leadScore?: ContentScoreResult | null;
+  leadPropertyId?: string | null;
 }
 
-export function Sidebar({ email, name, avatarUrl, empresaName }: SidebarProps) {
+export function Sidebar({
+  email,
+  name,
+  avatarUrl,
+  empresaName,
+  leadScore,
+  leadPropertyId,
+}: SidebarProps) {
   return (
     <aside className="hidden w-[248px] shrink-0 flex-col border-r border-rule-strong bg-ivory lg:flex">
       <div className="flex h-16 items-center border-b border-rule px-5">
@@ -35,6 +46,13 @@ export function Sidebar({ email, name, avatarUrl, empresaName }: SidebarProps) {
       <div className="flex-1 overflow-y-auto py-4">
         <SidebarNav />
       </div>
+
+      {leadScore && leadPropertyId ? (
+        <div className="border-t border-rule px-4 py-4">
+          <ContentNudgeCard score={leadScore} propertyId={leadPropertyId} />
+        </div>
+      ) : null}
+
       <UserCard email={email} name={name} avatarUrl={avatarUrl} />
     </aside>
   );

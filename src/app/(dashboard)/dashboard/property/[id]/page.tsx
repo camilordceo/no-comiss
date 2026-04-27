@@ -13,7 +13,11 @@ import {
   formatSqft,
   propertyTypeLabel,
 } from "@/lib/utils/format";
-import type { ListingStatus } from "@/lib/types/database";
+import type { ListingStatus, PropiedadMedia } from "@/lib/types/database";
+import { PropertyMediaTabs } from "@/components/property/property-media-tabs";
+import { ContentScoreTile } from "@/components/dashboard/content-score-tile";
+import { ContentNudgeCard } from "@/components/dashboard/content-nudge-card";
+import { calculateContentScore } from "@/lib/content/score";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -42,9 +46,12 @@ export default async function PropertyDetailPage({ params }: PageProps) {
     .eq("propiedad_id", id)
     .order("sort_order", { ascending: true });
 
-  const photos = (media ?? []).filter((m) => m.media_type === "photo");
+  const allMedia = (media ?? []) as PropiedadMedia[];
+  const photos = allMedia.filter((m) => m.media_type === "photo");
+  const videos = allMedia.filter((m) => m.media_type === "video");
   const hero = photos.find((m) => m.is_hero) ?? photos[0] ?? null;
   const status = (property.listing_status ?? "draft") as ListingStatus;
+  const contentScore = calculateContentScore(property, allMedia);
 
   return (
     <div className="space-y-8">
@@ -126,29 +133,22 @@ export default async function PropertyDetailPage({ params }: PageProps) {
         </section>
       ) : null}
 
-      {/* Photo grid */}
-      {photos.length > 1 ? (
-        <section className="space-y-3">
-          <div className="eyebrow">Gallery · {photos.length} photos</div>
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {photos.map((p) => (
-              <li
-                key={p.id}
-                className="aspect-square overflow-hidden border border-rule bg-crema-2"
-              >
-                {p.public_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.public_url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {/* Content score + nudge */}
+      <section className="grid gap-3 md:grid-cols-[1fr_320px]">
+        <ContentScoreTile score={contentScore} propertyId={property.id} />
+        <ContentNudgeCard score={contentScore} propertyId={property.id} />
+      </section>
+
+      {/* Media — photos + videos */}
+      <section className="space-y-3">
+        <div className="eyebrow">Media library</div>
+        <PropertyMediaTabs
+          empresaId={session.profile.empresa_id}
+          propertyId={property.id}
+          photos={photos}
+          videos={videos}
+        />
+      </section>
 
       <footer className="flex flex-col gap-3 border-t border-rule pt-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-xs text-text-3">

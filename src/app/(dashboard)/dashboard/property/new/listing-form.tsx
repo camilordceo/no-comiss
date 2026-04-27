@@ -5,7 +5,14 @@ import { useRouter } from "next/navigation";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
-import { Image as ImageIcon, Loader2, Star, Trash2, Upload } from "lucide-react";
+import {
+  Image as ImageIcon,
+  Loader2,
+  Star,
+  Trash2,
+  Upload,
+  Video as VideoIcon,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,12 +36,19 @@ import { logger } from "@/lib/utils/logger";
 import { cn } from "@/lib/utils/cn";
 
 const MAX_PHOTO_MB = 10;
+const MAX_VIDEO_MB = 500;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp", "image/heic", "image/heif"];
+const ACCEPTED_VIDEO_EXT = /\.(mp4|mov|webm|m4v)$/i;
 
 interface PhotoTicket {
   id: string;
   file: File;
   previewUrl: string;
+}
+
+interface VideoTicket {
+  id: string;
+  file: File;
 }
 
 interface Props {
@@ -44,10 +58,12 @@ interface Props {
 export function ListingForm({ empresaId }: Props) {
   const router = useRouter();
   const [photos, setPhotos] = useState<PhotoTicket[]>([]);
+  const [videos, setVideos] = useState<VideoTicket[]>([]);
   const [heroId, setHeroId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitProgress, setSubmitProgress] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
 
   const {
     register,
@@ -121,6 +137,33 @@ export function ListingForm({ empresaId }: Props) {
     setHeroId((current) => (current === id ? null : current));
   }, []);
 
+  const handleVideoFiles = useCallback((incoming: FileList | File[]) => {
+    const next: VideoTicket[] = [];
+    const rejected: string[] = [];
+    for (const file of Array.from(incoming)) {
+      const isAccepted =
+        file.type.startsWith("video/") || ACCEPTED_VIDEO_EXT.test(file.name);
+      if (!isAccepted) {
+        rejected.push(`${file.name}: We accept MP4, MOV, and WebM.`);
+        continue;
+      }
+      if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
+        rejected.push(`${file.name}: over ${MAX_VIDEO_MB} MB`);
+        continue;
+      }
+      next.push({
+        id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+        file,
+      });
+    }
+    if (rejected.length > 0) toast.error(rejected.join("\n"));
+    if (next.length > 0) setVideos((prev) => [...prev, ...next]);
+  }, []);
+
+  const removeVideo = useCallback((id: string) => {
+    setVideos((prev) => prev.filter((v) => v.id !== id));
+  }, []);
+
   const onSubmit = useCallback(
     async (values: ListingInput) => {
       if (photos.length === 0) {
@@ -178,6 +221,69 @@ export function ListingForm({ empresaId }: Props) {
           }
         }
 
+        for (let i = 0; i < videos.length; i++) {
+          const v = videos[i];
+          setSubmitProgress(`Uploading video ${i + 1} of ${videos.length}…`);
+
+          try {
+            const meta = await readVideoMeta(v.file);
+            const path = generateStoragePath(empresaId, propertyId, v.file.name);
+            const upload = await uploadFile(v.file, "listing-videos", path);
+
+            let thumbnailUrl: string | null = null;
+            if (meta.thumbnail) {
+              try {
+                const thumbName = v.file.name.replace(/\.[^.]+$/, "") + ".jpg";
+                const thumbPath = generateStoragePath(
+                  empresaId,
+                  propertyId,
+                  `thumb-${thumbName}`,
+                );
+                const thumbFile = new File([meta.thumbnail], thumbName, {
+                  type: "image/jpeg",
+                });
+                const thumbUpload = await uploadFile(thumbFile, "listing-photos", thumbPath);
+                thumbnailUrl = thumbUpload.publicUrl;
+              } catch (err) {
+                logger.warn("listing.video_thumbnail_failed", {
+                  propertyId,
+                  message: err instanceof Error ? err.message : String(err),
+                });
+              }
+            }
+
+            const videoRes = await fetch("/api/media/upload", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                propiedad_id: propertyId,
+                media_type: "video",
+                storage_path: upload.storagePath,
+                public_url: upload.publicUrl,
+                thumbnail_url: thumbnailUrl,
+                file_size_bytes: v.file.size,
+                mime_type: v.file.type || "video/mp4",
+                duration_seconds: meta.duration,
+              }),
+            });
+            if (!videoRes.ok) {
+              const err = await videoRes.json().catch(() => ({}));
+              logger.warn("listing.video_register_failed", { propertyId, err });
+              toast.error(`Video ${i + 1}: registered upload but DB insert failed.`);
+            } else {
+              logger.info("media.video_uploaded", {
+                propertyId,
+                duration: meta.duration,
+                fileSize: v.file.size,
+              });
+            }
+          } catch (err) {
+            const message = err instanceof Error ? err.message : "Video upload failed";
+            logger.warn("listing.video_upload_failed", { propertyId, message });
+            toast.error(`Video ${i + 1}: ${message}`);
+          }
+        }
+
         toast.success("Your listing is live.");
         router.push(`/dashboard/property/${propertyId}`);
         router.refresh();
@@ -190,7 +296,7 @@ export function ListingForm({ empresaId }: Props) {
         setSubmitProgress(null);
       }
     },
-    [photos, heroId, empresaId, router],
+    [photos, videos, heroId, empresaId, router],
   );
 
   const photoCount = photos.length;
@@ -514,6 +620,83 @@ export function ListingForm({ empresaId }: Props) {
         ) : null}
       </Section>
 
+      {/* ─── Videos (optional) ─── */}
+      <Section
+        title="Video tour"
+        hint="Optional but powerful — listings with video get 73% more showings. MP4, MOV or WebM, up to 500 MB."
+      >
+        <div
+          className="rounded-sm border-2 border-dashed border-rule-strong bg-paper p-10 text-center transition-colors hover:border-espresso/60"
+          onDragOver={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onDrop={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (e.dataTransfer.files?.length) handleVideoFiles(e.dataTransfer.files);
+          }}
+        >
+          <VideoIcon className="mx-auto mb-3 h-6 w-6 text-text-3" aria-hidden />
+          <p className="font-serif text-lg font-medium text-text">
+            Drop your home tour videos here
+          </p>
+          <p className="mt-1 text-sm text-text-3">
+            MP4 · MOV · WebM — up to {MAX_VIDEO_MB} MB each
+          </p>
+          <button
+            type="button"
+            onClick={() => videoInputRef.current?.click()}
+            className="mt-5 inline-flex items-center gap-1.5 rounded-sm border border-rule-strong bg-ivory px-4 py-2 font-mono text-[11px] font-semibold uppercase tracking-[0.16em] text-text transition-all hover:border-espresso"
+          >
+            <VideoIcon className="h-3.5 w-3.5" aria-hidden />
+            Select video
+          </button>
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept=".mp4,.mov,.webm,.m4v,video/mp4,video/quicktime,video/webm"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) handleVideoFiles(e.target.files);
+              e.target.value = "";
+            }}
+          />
+        </div>
+
+        {videos.length > 0 ? (
+          <ul className="space-y-2">
+            {videos.map((v, idx) => (
+              <li
+                key={v.id}
+                className="flex items-center justify-between gap-3 border border-rule bg-ivory px-4 py-3"
+              >
+                <div className="flex min-w-0 items-center gap-3">
+                  <VideoIcon className="h-4 w-4 shrink-0 text-text-3" aria-hidden />
+                  <div className="min-w-0">
+                    <div className="truncate font-mono text-[11px] text-text-2">
+                      {v.file.name}
+                    </div>
+                    <div className="font-mono text-[10px] uppercase tracking-[0.14em] text-text-3">
+                      Video {idx + 1} · {(v.file.size / (1024 * 1024)).toFixed(1)} MB
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeVideo(v.id)}
+                  className="font-mono text-[10px] uppercase tracking-[0.14em] text-rust transition-colors hover:text-rust"
+                  aria-label="Remove video"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : null}
+      </Section>
+
       {/* ─── Submit ─── */}
       <div className="sticky bottom-0 -mx-4 border-t border-rule bg-crema/95 px-4 py-4 backdrop-blur md:static md:mx-0 md:border-0 md:bg-transparent md:p-0">
         <div className="flex flex-col-reverse items-stretch gap-3 sm:flex-row sm:items-center sm:justify-end">
@@ -581,4 +764,60 @@ function Field({
       ) : null}
     </div>
   );
+}
+
+interface VideoMeta {
+  duration: number | null;
+  thumbnail: Blob | null;
+}
+
+async function readVideoMeta(file: File): Promise<VideoMeta> {
+  return new Promise((resolve) => {
+    const video = document.createElement("video");
+    video.preload = "metadata";
+    video.muted = true;
+    const url = URL.createObjectURL(file);
+    video.src = url;
+
+    let settled = false;
+    const settle = (meta: VideoMeta) => {
+      if (settled) return;
+      settled = true;
+      URL.revokeObjectURL(url);
+      resolve(meta);
+    };
+
+    video.onloadedmetadata = () => {
+      const duration = isFinite(video.duration) ? Math.round(video.duration) : null;
+      const target = Math.min(1, Math.max(0, video.duration - 0.1));
+      try {
+        video.currentTime = isFinite(target) ? target : 0;
+      } catch {
+        settle({ duration, thumbnail: null });
+      }
+    };
+    video.onseeked = () => {
+      try {
+        const canvas = document.createElement("canvas");
+        canvas.width = video.videoWidth || 1280;
+        canvas.height = video.videoHeight || 720;
+        const ctx = canvas.getContext("2d");
+        const duration = isFinite(video.duration) ? Math.round(video.duration) : null;
+        if (!ctx) {
+          settle({ duration, thumbnail: null });
+          return;
+        }
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(
+          (blob) => settle({ duration, thumbnail: blob }),
+          "image/jpeg",
+          0.85,
+        );
+      } catch {
+        const duration = isFinite(video.duration) ? Math.round(video.duration) : null;
+        settle({ duration, thumbnail: null });
+      }
+    };
+    video.onerror = () => settle({ duration: null, thumbnail: null });
+  });
 }

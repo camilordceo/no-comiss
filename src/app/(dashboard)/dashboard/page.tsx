@@ -5,10 +5,12 @@ import { requireDashboardSession } from "@/lib/hooks/use-session";
 import { createClient } from "@/lib/supabase/server";
 import { Button } from "@/components/ui/button";
 import { OverviewEmptyState } from "@/components/dashboard/overview-empty-state";
+import { ContentScoreTile } from "@/components/dashboard/content-score-tile";
 import { STATUS_LABEL, STATUS_BADGE_VARIANT } from "@/lib/types/app";
 import { formatPrice, formatRelativeDate, propertyTypeLabel } from "@/lib/utils/format";
 import type { ListingStatus, PropiedadMedia } from "@/lib/types/database";
 import { Badge } from "@/components/ui/badge";
+import { calculateContentScore } from "@/lib/content/score";
 
 export default async function DashboardOverviewPage() {
   const session = await requireDashboardSession();
@@ -32,22 +34,28 @@ export default async function DashboardOverviewPage() {
   }
 
   const propertyIds = properties.map((p) => p.id);
-  const { data: heroMedia } = await supabase
+  const { data: allMediaRows } = await supabase
     .from("propiedad_media")
     .select("*")
     .in("propiedad_id", propertyIds)
-    .eq("media_type", "photo")
     .order("sort_order", { ascending: true });
 
+  const allMedia = (allMediaRows ?? []) as PropiedadMedia[];
   const heroByProperty = new Map<string, PropiedadMedia>();
-  for (const m of heroMedia ?? []) {
+  for (const m of allMedia) {
+    if (m.media_type !== "photo") continue;
     if (!heroByProperty.has(m.propiedad_id)) {
-      heroByProperty.set(m.propiedad_id, m as PropiedadMedia);
+      heroByProperty.set(m.propiedad_id, m);
     }
     if (m.is_hero === true) {
-      heroByProperty.set(m.propiedad_id, m as PropiedadMedia);
+      heroByProperty.set(m.propiedad_id, m);
     }
   }
+
+  // Content score for the most recent property — surfaced on the overview tile.
+  const leadProperty = properties[0];
+  const leadMedia = allMedia.filter((m) => m.propiedad_id === leadProperty.id);
+  const leadScore = calculateContentScore(leadProperty, leadMedia);
 
   const firstName = session.profile.nombre?.split(" ")[0] ?? "";
   const totalListings = properties.length;
@@ -92,19 +100,15 @@ export default async function DashboardOverviewPage() {
           <div className="stat-value mt-2">{formatPrice(totalSavings)}</div>
           <div className="mt-2 text-xs text-text-3">vs. 6% commission</div>
         </div>
-        <div className="stat-tile">
-          <div className="data-key">Listing views</div>
-          <div className="stat-value mt-2">0</div>
-          <div className="mt-2 text-xs text-text-3">Across all channels</div>
-        </div>
+        <ContentScoreTile score={leadScore} propertyId={leadProperty.id} />
         <div className="stat-tile">
           <div className="data-key">Days live</div>
           <div className="stat-value mt-2">
-            {properties[0]?.published_at
+            {leadProperty.published_at
               ? Math.max(
                   1,
                   Math.floor(
-                    (Date.now() - new Date(properties[0].published_at).getTime()) /
+                    (Date.now() - new Date(leadProperty.published_at).getTime()) /
                       86_400_000,
                   ),
                 )

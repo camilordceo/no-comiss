@@ -17,6 +17,7 @@ import type { ListingStatus, PropiedadMedia } from "@/lib/types/database";
 import { PropertyMediaTabs } from "@/components/property/property-media-tabs";
 import { ContentScoreTile } from "@/components/dashboard/content-score-tile";
 import { ContentNudgeCard } from "@/components/dashboard/content-nudge-card";
+import { PublishToggle } from "@/components/property/publish-toggle";
 import { calculateContentScore } from "@/lib/content/score";
 
 interface PageProps {
@@ -85,10 +86,19 @@ export default async function PropertyDetailPage({ params }: PageProps) {
               : ""}
           </p>
         </div>
-        <div className="text-left md:text-right">
-          <div className="data-key">Asking price</div>
-          <div className="font-serif text-3xl font-medium leading-none text-text md:text-4xl">
-            {formatPrice(property.precio, property.currency ?? "USD")}
+        <div className="flex flex-col items-stretch gap-3 md:items-end">
+          <div className="text-left md:text-right">
+            <div className="data-key">Asking price</div>
+            <div className="font-serif text-3xl font-medium leading-none text-text md:text-4xl">
+              {formatPrice(property.precio, property.currency ?? "USD")}
+            </div>
+          </div>
+          <div className="flex items-center justify-end gap-2">
+            <PublishToggle
+              propertyId={property.id}
+              status={status}
+              hasPhotos={photos.length > 0}
+            />
           </div>
         </div>
       </header>

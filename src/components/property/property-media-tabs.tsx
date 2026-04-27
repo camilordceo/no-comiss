@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { VideoUploader } from "./video-uploader";
 import { VideoEmptyState } from "./video-empty-state";
+import { PhotoUploader } from "./photo-uploader";
 import type { PropiedadMedia } from "@/lib/types/database";
 
 interface Props {
@@ -13,39 +14,30 @@ interface Props {
   videos: PropiedadMedia[];
 }
 
-export function PropertyMediaTabs({ empresaId, propertyId, photos, videos: initialVideos }: Props) {
+export function PropertyMediaTabs({
+  empresaId,
+  propertyId,
+  photos: initialPhotos,
+  videos: initialVideos,
+}: Props) {
+  const [photos, setPhotos] = useState<PropiedadMedia[]>(initialPhotos);
   const [videos, setVideos] = useState<PropiedadMedia[]>(initialVideos);
   const hadVideoBefore = initialVideos.length > 0;
 
   return (
-    <Tabs defaultValue={initialVideos.length > 0 ? "photos" : "photos"}>
+    <Tabs defaultValue="photos">
       <TabsList>
         <TabsTrigger value="photos">Photos · {photos.length}</TabsTrigger>
         <TabsTrigger value="videos">Videos · {videos.length}</TabsTrigger>
       </TabsList>
 
       <TabsContent value="photos">
-        {photos.length > 0 ? (
-          <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
-            {photos.map((p) => (
-              <li
-                key={p.id}
-                className="aspect-square overflow-hidden border border-rule bg-crema-2"
-              >
-                {p.public_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={p.public_url}
-                    alt=""
-                    className="h-full w-full object-cover"
-                  />
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-text-3">No photos yet.</p>
-        )}
+        <PhotoUploader
+          empresaId={empresaId}
+          propertyId={propertyId}
+          initialPhotos={photos}
+          onChange={setPhotos}
+        />
       </TabsContent>
 
       <TabsContent value="videos">

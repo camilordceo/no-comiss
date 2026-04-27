@@ -14,23 +14,30 @@ import {
 } from "@/components/ui/sheet";
 import { SidebarNav } from "./nav-items";
 import { UserCard } from "./user-card";
+import { NotificationBell } from "./notification-bell";
 import { cn } from "@/lib/utils/cn";
+import type { Notification } from "@/lib/types/database";
 
 interface HeaderProps {
   email: string;
   name: string;
   avatarUrl: string | null;
+  notifications: Notification[];
+  unreadCount: number;
 }
 
 function breadcrumbFromPath(path: string): string {
   if (path === "/dashboard") return "Overview";
   if (path.startsWith("/dashboard/property/new")) return "New listing";
   if (path.startsWith("/dashboard/property/")) return "Listing";
+  if (path.startsWith("/dashboard/leads")) return "Leads";
+  if (path.startsWith("/dashboard/showings")) return "Showings";
+  if (path.startsWith("/dashboard/offers")) return "Offers";
   if (path.startsWith("/dashboard/settings")) return "Settings";
   return "Terminal";
 }
 
-export function Header({ email, name, avatarUrl }: HeaderProps) {
+export function Header({ email, name, avatarUrl, notifications, unreadCount }: HeaderProps) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const crumb = breadcrumbFromPath(pathname);
@@ -71,6 +78,9 @@ export function Header({ email, name, avatarUrl }: HeaderProps) {
             AI Active
           </span>
         </div>
+
+        {/* Notification bell */}
+        <NotificationBell unreadCount={unreadCount} recent={notifications} />
 
         {/* Mobile menu */}
         <Sheet open={open} onOpenChange={setOpen}>

@@ -103,6 +103,22 @@ export async function PATCH(request: NextRequest, ctx: { params: Promise<{ id: s
 
   const updates: Database["public"]["Tables"]["propiedades"]["Update"] = { ...parsed.data };
 
+  // Auto-stamp published_at the first time a listing flips into a public
+  // status (active/under_offer/sold) so SEO/share UTM capture works.
+  if (
+    parsed.data.listing_status &&
+    ["active", "under_offer", "sold"].includes(parsed.data.listing_status)
+  ) {
+    const { data: existingPub } = await auth.supabase!
+      .from("propiedades")
+      .select("published_at")
+      .eq("id", id)
+      .single();
+    if (!existingPub?.published_at) {
+      updates.published_at = new Date().toISOString();
+    }
+  }
+
   if (
     parsed.data.address_line1 ||
     parsed.data.ciudad ||

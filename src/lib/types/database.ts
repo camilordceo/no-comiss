@@ -32,6 +32,14 @@ export type LeadOrigen =
   | "ad"
   | "whatsapp"
   | "other";
+export type LeadStatus =
+  | "new"
+  | "contacted"
+  | "qualified"
+  | "showing"
+  | "offer"
+  | "won"
+  | "lost";
 export type CitaEstado = "programada" | "confirmada" | "cancelada" | "completada";
 export type CitaTimeSlot = "morning" | "afternoon" | "evening";
 export type OfertaEstado =
@@ -261,6 +269,8 @@ export type Database = {
           utm_medium: string | null;
           utm_campaign: string | null;
           metadata: Json;
+          status: LeadStatus;
+          seller_notes: string | null;
           created_at: string;
         };
         Insert: {
@@ -280,6 +290,8 @@ export type Database = {
           utm_medium?: string | null;
           utm_campaign?: string | null;
           metadata?: Json;
+          status?: LeadStatus;
+          seller_notes?: string | null;
         };
         Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
         Relationships: [];

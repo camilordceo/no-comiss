@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  BarChart3,
-  Camera,
+  Calendar,
+  DollarSign,
   Home,
   LayoutDashboard,
   Settings,
+  Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils/cn";
 
@@ -33,6 +34,27 @@ const NAV_PRIMARY: NavItem[] = [
     label: "New listing",
     icon: Home,
     match: (p) => p.startsWith("/dashboard/property"),
+  },
+  {
+    key: "leads",
+    href: "/dashboard/leads",
+    label: "Leads",
+    icon: Users,
+    match: (p) => p.startsWith("/dashboard/leads"),
+  },
+  {
+    key: "showings",
+    href: "/dashboard/showings",
+    label: "Showings",
+    icon: Calendar,
+    match: (p) => p.startsWith("/dashboard/showings"),
+  },
+  {
+    key: "offers",
+    href: "/dashboard/offers",
+    label: "Offers",
+    icon: DollarSign,
+    match: (p) => p.startsWith("/dashboard/offers"),
   },
 ];
 
@@ -123,7 +145,8 @@ export function SidebarNav({ onNavigate, variant = "sidebar" }: SidebarNavProps)
 }
 
 const NAV_BOTTOM: NavItem[] = [
-  ...NAV_PRIMARY,
+  NAV_PRIMARY[0], // overview
+  NAV_PRIMARY[2], // leads
   {
     key: "settings",
     href: "/dashboard/settings",

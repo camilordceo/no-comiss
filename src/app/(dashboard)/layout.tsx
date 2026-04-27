@@ -4,7 +4,7 @@ import { BottomNav } from "@/components/layout/bottom-nav";
 import { Header } from "@/components/layout/header";
 import { createClient } from "@/lib/supabase/server";
 import { calculateContentScore, type ContentScoreResult } from "@/lib/content/score";
-import type { PropiedadMedia } from "@/lib/types/database";
+import type { Notification, PropiedadMedia } from "@/lib/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -14,11 +14,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
   const avatarUrl = session.profile.avatar_url;
   const empresaName = session.empresa?.nombre ?? null;
 
+  const supabase = await createClient();
+
   let leadScore: ContentScoreResult | null = null;
   let leadPropertyId: string | null = null;
   if (session.primaryProperty) {
     leadPropertyId = session.primaryProperty.id;
-    const supabase = await createClient();
     const { data: media } = await supabase
       .from("propiedad_media")
       .select("*")
@@ -27,6 +28,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
       session.primaryProperty,
       (media ?? []) as PropiedadMedia[],
     );
+  }
+
+  let notifications: Notification[] = [];
+  let unreadCount = 0;
+  if (session.profile.empresa_id) {
+    const { data: notiData } = await supabase
+      .from("notifications")
+      .select("*")
+      .eq("user_id", session.userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    notifications = (notiData ?? []) as Notification[];
+    unreadCount = notifications.filter((n) => !n.read).length;
   }
 
   return (
@@ -40,7 +54,13 @@ export default async function DashboardLayout({ children }: { children: React.Re
         leadPropertyId={leadPropertyId}
       />
       <div className="flex flex-1 flex-col">
-        <Header email={session.email} name={name} avatarUrl={avatarUrl} />
+        <Header
+          email={session.email}
+          name={name}
+          avatarUrl={avatarUrl}
+          notifications={notifications}
+          unreadCount={unreadCount}
+        />
         <main className="flex-1 px-5 pb-24 pt-8 md:px-10 md:pb-12 md:pt-10 animate-fade-up">
           <div className="mx-auto w-full max-w-6xl">{children}</div>
         </main>

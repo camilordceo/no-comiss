@@ -24,6 +24,35 @@ export type ListingStatus =
 
 export type MediaType = "photo" | "video" | "virtual_tour";
 
+export type LeadFormType = "inquiry" | "showing" | "offer";
+export type LeadOrigen =
+  | "mini_site"
+  | "direct_form"
+  | "shared_link"
+  | "ad"
+  | "whatsapp"
+  | "other";
+export type CitaEstado = "programada" | "confirmada" | "cancelada" | "completada";
+export type CitaTimeSlot = "morning" | "afternoon" | "evening";
+export type OfertaEstado =
+  | "submitted"
+  | "reviewed"
+  | "accepted"
+  | "countered"
+  | "rejected"
+  | "withdrawn";
+export type OfertaFinancing = "cash" | "conventional" | "fha" | "va" | "other";
+export type OfertaPreApproved = "yes" | "no" | "pending";
+export type NotificationType =
+  | "content_nudge"
+  | "new_lead"
+  | "showing_scheduled"
+  | "showing_reminder"
+  | "offer_received"
+  | "listing_published"
+  | "milestone"
+  | "system";
+
 /**
  * `tipo_inmueble` is stored as a free-form string in the DB so it can hold both
  * Colombia values (apartamento, casa, apartaestudio, local, oficina, bodega)
@@ -214,6 +243,148 @@ export type Database = {
         };
         Relationships: [];
       };
+      leads: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          propiedad_interes_id: string | null;
+          nombre: string;
+          email: string;
+          telefono: string | null;
+          origen: LeadOrigen;
+          form_type: LeadFormType;
+          mensaje: string | null;
+          pre_approved: boolean | null;
+          budget_range: string | null;
+          timeline: string | null;
+          utm_source: string | null;
+          utm_medium: string | null;
+          utm_campaign: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          propiedad_interes_id?: string | null;
+          nombre: string;
+          email: string;
+          telefono?: string | null;
+          origen?: LeadOrigen;
+          form_type: LeadFormType;
+          mensaje?: string | null;
+          pre_approved?: boolean | null;
+          budget_range?: string | null;
+          timeline?: string | null;
+          utm_source?: string | null;
+          utm_medium?: string | null;
+          utm_campaign?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["leads"]["Insert"]>;
+        Relationships: [];
+      };
+      citas: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          propiedad_id: string;
+          lead_id: string | null;
+          nombre: string;
+          email: string;
+          telefono: string | null;
+          preferred_date: string | null;
+          preferred_time: CitaTimeSlot | null;
+          estado: CitaEstado;
+          notas: string | null;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          propiedad_id: string;
+          lead_id?: string | null;
+          nombre: string;
+          email: string;
+          telefono?: string | null;
+          preferred_date?: string | null;
+          preferred_time?: CitaTimeSlot | null;
+          estado?: CitaEstado;
+          notas?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["citas"]["Insert"]>;
+        Relationships: [];
+      };
+      ofertas: {
+        Row: {
+          id: string;
+          empresa_id: string;
+          propiedad_id: string;
+          lead_id: string | null;
+          nombre: string;
+          email: string;
+          telefono: string | null;
+          offer_price: number;
+          earnest_money: number | null;
+          financing: OfertaFinancing | null;
+          pre_approved: OfertaPreApproved | null;
+          closing_date: string | null;
+          contingencies: string[];
+          notas: string | null;
+          estado: OfertaEstado;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id: string;
+          propiedad_id: string;
+          lead_id?: string | null;
+          nombre: string;
+          email: string;
+          telefono?: string | null;
+          offer_price: number;
+          earnest_money?: number | null;
+          financing?: OfertaFinancing | null;
+          pre_approved?: OfertaPreApproved | null;
+          closing_date?: string | null;
+          contingencies?: string[];
+          notas?: string | null;
+          estado?: OfertaEstado;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["ofertas"]["Insert"]>;
+        Relationships: [];
+      };
+      notifications: {
+        Row: {
+          id: string;
+          empresa_id: string | null;
+          user_id: string | null;
+          type: NotificationType;
+          title: string;
+          body: string | null;
+          action_url: string | null;
+          read: boolean;
+          metadata: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          empresa_id?: string | null;
+          user_id?: string | null;
+          type: NotificationType;
+          title: string;
+          body?: string | null;
+          action_url?: string | null;
+          read?: boolean;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
+        Relationships: [];
+      };
       propiedad_media: {
         Row: {
           id: string;
@@ -296,3 +467,7 @@ export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Empresa = Database["public"]["Tables"]["empresas"]["Row"];
 export type Propiedad = Database["public"]["Tables"]["propiedades"]["Row"];
 export type PropiedadMedia = Database["public"]["Tables"]["propiedad_media"]["Row"];
+export type Lead = Database["public"]["Tables"]["leads"]["Row"];
+export type Cita = Database["public"]["Tables"]["citas"]["Row"];
+export type Oferta = Database["public"]["Tables"]["ofertas"]["Row"];
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"];

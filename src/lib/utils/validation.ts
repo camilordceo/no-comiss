@@ -117,6 +117,110 @@ export const profileSchema = z.object({
 });
 export type ProfileInput = z.infer<typeof profileSchema>;
 
+/* ─────────── Leads / Showings / Offers ─────────── */
+
+export const BUDGET_RANGES = [
+  { value: "under_300k", label: "Under $300K" },
+  { value: "300_500k", label: "$300K – $500K" },
+  { value: "500_750k", label: "$500K – $750K" },
+  { value: "750k_1m", label: "$750K – $1M" },
+  { value: "over_1m", label: "Over $1M" },
+] as const;
+
+export const TIMELINES = [
+  { value: "ready_now", label: "Ready now" },
+  { value: "1_3_months", label: "1 – 3 months" },
+  { value: "3_6_months", label: "3 – 6 months" },
+  { value: "exploring", label: "Just exploring" },
+] as const;
+
+export const TIME_SLOTS = [
+  { value: "morning", label: "Morning" },
+  { value: "afternoon", label: "Afternoon" },
+  { value: "evening", label: "Evening" },
+] as const;
+
+export const FINANCING_OPTIONS = [
+  { value: "cash", label: "Cash" },
+  { value: "conventional", label: "Conventional" },
+  { value: "fha", label: "FHA" },
+  { value: "va", label: "VA" },
+] as const;
+
+export const PRE_APPROVED_OPTIONS = [
+  { value: "yes", label: "Yes" },
+  { value: "no", label: "No" },
+  { value: "pending", label: "Pending" },
+] as const;
+
+export const CONTINGENCY_OPTIONS = [
+  { value: "inspection", label: "Inspection" },
+  { value: "appraisal", label: "Appraisal" },
+  { value: "financing", label: "Financing" },
+] as const;
+
+const baseFields = {
+  nombre: z.string().trim().min(2, "Name required"),
+  email: z.string().trim().toLowerCase().email("Enter a valid email"),
+  telefono: z
+    .string()
+    .trim()
+    .max(40)
+    .optional()
+    .or(z.literal("").transform(() => undefined)),
+  utm_source: z.string().trim().max(80).optional().nullable(),
+  utm_medium: z.string().trim().max(80).optional().nullable(),
+  utm_campaign: z.string().trim().max(80).optional().nullable(),
+  origen: z
+    .enum(["mini_site", "direct_form", "shared_link", "ad", "whatsapp", "other"])
+    .default("mini_site"),
+};
+
+export const inquirySchema = z.object({
+  form_type: z.literal("inquiry"),
+  property_slug: z.string().trim().min(1),
+  ...baseFields,
+  pre_approved: z.boolean().optional(),
+  budget_range: z.string().trim().max(40).optional().or(z.literal("")),
+  timeline: z.string().trim().max(40).optional().or(z.literal("")),
+  message: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+export type InquiryInput = z.infer<typeof inquirySchema>;
+
+export const showingSchema = z.object({
+  form_type: z.literal("showing"),
+  property_slug: z.string().trim().min(1),
+  ...baseFields,
+  telefono: z.string().trim().min(7, "Phone required for showings").max(40),
+  preferred_date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date").optional(),
+  preferred_time: z.enum(["morning", "afternoon", "evening"]).optional(),
+  pre_approved: z.boolean().optional(),
+  message: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+export type ShowingInput = z.infer<typeof showingSchema>;
+
+export const offerSchema = z.object({
+  form_type: z.literal("offer"),
+  property_slug: z.string().trim().min(1),
+  ...baseFields,
+  telefono: z.string().trim().min(7, "Phone required for offers").max(40),
+  offer_price: z.coerce.number().min(1000, "Enter a real number"),
+  earnest_money: z.coerce.number().min(0).optional(),
+  financing: z.enum(["cash", "conventional", "fha", "va"]).optional(),
+  pre_approved_status: z.enum(["yes", "no", "pending"]).optional(),
+  closing_date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Pick a date").optional(),
+  contingencies: z.array(z.enum(["inspection", "appraisal", "financing"])).default([]),
+  message: z.string().trim().max(2000).optional().or(z.literal("")),
+});
+export type OfferInput = z.infer<typeof offerSchema>;
+
+export const leadSubmissionSchema = z.discriminatedUnion("form_type", [
+  inquirySchema,
+  showingSchema,
+  offerSchema,
+]);
+export type LeadSubmissionInput = z.infer<typeof leadSubmissionSchema>;
+
 /* ─────────── Media ─────────── */
 
 export const mediaUpdateSchema = z.object({

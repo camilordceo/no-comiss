@@ -162,9 +162,20 @@ export default async function PropertyDetailPage({ params }: PageProps) {
             </>
           ) : null}
         </div>
-        <Button asChild variant="ghost" size="sm">
-          <Link href="/dashboard">Back to terminal</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          {property.slug &&
+          property.listing_status &&
+          ["active", "under_offer", "sold"].includes(property.listing_status) ? (
+            <Button asChild variant="secondary" size="sm">
+              <Link href={`/homes/${property.slug}`} target="_blank" rel="noreferrer">
+                View public page
+              </Link>
+            </Button>
+          ) : null}
+          <Button asChild variant="ghost" size="sm">
+            <Link href="/dashboard">Back to terminal</Link>
+          </Button>
+        </div>
       </footer>
     </div>
   );

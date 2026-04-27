@@ -19,7 +19,9 @@
       "PowerShell($env:NODE_OPTIONS = \"--max-old-space-size=4096\"; $env:NEXT_PUBLIC_SUPABASE_URL = \"https://placeholder.supabase.co\"; $env:NEXT_PUBLIC_SUPABASE_ANON_KEY = \"placeholder\"; $env:SUPABASE_SERVICE_ROLE_KEY = \"placeholder\"; $env:NEXT_PUBLIC_APP_URL = \"http://localhost:3000\"; npx next build 2>&1 | Select-Object -Last 50)",
       "Bash(npx next *)",
       "PowerShell(& npx next build 2>&1 | Select-Object -Last 120)",
-      "PowerShell(npm run *)"
+      "PowerShell(npm run *)",
+      "Bash(git commit *)",
+      "PowerShell(& npx next build 2>&1 | Select-Object -Last 80)"
     ]
   }
 }

@@ -9,7 +9,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { formatUsd } from "@/lib/services/wompi";
+import { formatCop, formatUsd, USD_TO_COP_RATE } from "@/lib/services/wompi";
+import { cn } from "@/lib/utils/cn";
 
 interface AcceptanceTokens {
   acceptance_token: string;
@@ -19,17 +20,22 @@ interface AcceptanceTokens {
 }
 
 type Stage = "idle" | "loading_tokens" | "ready" | "processing" | "success" | "error";
+type Mode = "upfront" | "monthly";
 
 interface Plan {
   id: "starter" | "pro" | "elite";
   name: string;
-  usdTotal: number;
-  copAmount: number;
-  amountInCents: number;
+  usdMonthly: number;
+  usdUpfrontTotal: number;
+  copUpfront: number;
+  copMonthly: number;
+  amountUpfrontCents: number;
+  amountMonthlyCents: number;
 }
 
 interface Props {
   plan: Plan;
+  initialMode: Mode;
   wompiPublicKey: string;
   wompiBaseUrl: string;
   userEmail: string;
@@ -66,8 +72,31 @@ function formatExp(value: string): string {
   return `${digits.slice(0, 2)}/${digits.slice(2)}`;
 }
 
-export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: Props) {
+function readWompiSessionId(): string | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as Record<string, unknown>;
+  const candidates: unknown[] = [
+    (w.WidgetWompi as { SESSION_ID?: unknown } | undefined)?.SESSION_ID,
+    (w.WidgetWompi as { sessionId?: unknown } | undefined)?.sessionId,
+    (w.WidgetWompi as { getSessionId?: () => unknown } | undefined)?.getSessionId?.(),
+    (w.WompiWebcheckout as { getSessionId?: () => unknown } | undefined)?.getSessionId?.(),
+    (w.WompiWebcheckout as { SESSION_ID?: unknown } | undefined)?.SESSION_ID,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.length > 0) return c;
+  }
+  return null;
+}
+
+export function CheckoutForm({
+  plan,
+  initialMode,
+  wompiPublicKey,
+  wompiBaseUrl,
+  userEmail,
+}: Props) {
   const router = useRouter();
+  const [mode, setMode] = useState<Mode>(initialMode);
   const [stage, setStage] = useState<Stage>("loading_tokens");
   const [tokens, setTokens] = useState<AcceptanceTokens | null>(null);
   const [cardholder, setCardholder] = useState("");
@@ -120,6 +149,9 @@ export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: 
     !!tokens &&
     !!wompiPublicKey;
 
+  const usdToday = mode === "upfront" ? plan.usdUpfrontTotal : plan.usdMonthly;
+  const copToday = mode === "upfront" ? plan.copUpfront : plan.copMonthly;
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canSubmit || submittingRef.current || !tokens) return;
@@ -155,55 +187,114 @@ export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: 
       }
       const cardToken = tokenJson.data.id;
 
-      // 2. Charge via our API (server-side uses private key)
-      const chargeRes = await fetch("/api/payments/charge-one-time", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan: plan.id,
-          cardToken,
-          acceptanceToken: tokens.acceptance_token,
-          acceptPersonalAuth: tokens.accept_personal_auth,
-          cardLastFour: last4,
-          cardBrand: brand,
-        }),
-      });
-      const chargeJson = (await chargeRes.json()) as {
-        transactionId?: string;
-        status?: string;
-        error?: string;
-        message?: string;
-      };
-      if (!chargeRes.ok || !chargeJson.transactionId) {
-        throw new Error(
-          chargeJson.message ?? chargeJson.error ?? "Payment couldn't be processed.",
-        );
+      if (mode === "upfront") {
+        await chargeUpfront(cardToken, last4, brand);
+      } else {
+        await startSubscription(cardToken, last4, brand);
       }
-
-      // 3. Poll for final status
-      const finalStatus = await pollStatus(chargeJson.transactionId);
-      if (finalStatus === "APPROVED") {
-        setStage("success");
-        return;
-      }
-      if (finalStatus === "DECLINED") {
-        throw new Error(
-          "Payment declined. Common causes: insufficient funds, online-payments blocked, or expired card.",
-        );
-      }
-      if (finalStatus === "ERROR" || finalStatus === "VOIDED") {
-        throw new Error("Wompi reported an error processing this card.");
-      }
-      // PENDING after exhausting retries
-      throw new Error(
-        "Payment is still being processed. Check back in a few minutes — we'll email you once it's confirmed.",
-      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setStage("error");
     } finally {
       submittingRef.current = false;
     }
+  }
+
+  async function chargeUpfront(
+    cardToken: string,
+    cardLast4: string,
+    cardBrand: string | null,
+  ) {
+    if (!tokens) throw new Error("missing_tokens");
+    const res = await fetch("/api/payments/charge-one-time", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plan: plan.id,
+        cardToken,
+        acceptanceToken: tokens.acceptance_token,
+        acceptPersonalAuth: tokens.accept_personal_auth,
+        cardLastFour: cardLast4,
+        cardBrand,
+      }),
+    });
+    const j = (await res.json()) as {
+      transactionId?: string;
+      status?: string;
+      error?: string;
+      message?: string;
+    };
+    if (!res.ok || !j.transactionId) {
+      throw new Error(j.message ?? j.error ?? "Payment couldn't be processed.");
+    }
+    const finalStatus = await pollStatus(j.transactionId);
+    if (finalStatus === "APPROVED") {
+      setStage("success");
+      return;
+    }
+    if (finalStatus === "DECLINED") {
+      throw new Error(
+        "Payment declined. Common causes: insufficient funds, online-payments blocked, or expired card.",
+      );
+    }
+    if (finalStatus === "ERROR" || finalStatus === "VOIDED") {
+      throw new Error("Wompi reported an error processing this card.");
+    }
+    throw new Error(
+      "Payment is still being processed. We'll email you once it's confirmed.",
+    );
+  }
+
+  async function startSubscription(
+    cardToken: string,
+    cardLast4: string,
+    cardBrand: string | null,
+  ) {
+    if (!tokens) throw new Error("missing_tokens");
+    const sessionId = readWompiSessionId();
+    const res = await fetch("/api/payments/create-payment-source", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        plan: plan.id,
+        cardToken,
+        acceptanceToken: tokens.acceptance_token,
+        acceptPersonalAuth: tokens.accept_personal_auth,
+        sessionId,
+        cardLastFour: cardLast4,
+        cardBrand,
+      }),
+    });
+    const j = (await res.json()) as {
+      paymentSourceId?: number;
+      transactionId?: string;
+      status?: string;
+      error?: string;
+      message?: string;
+    };
+    if (!res.ok) {
+      throw new Error(j.message ?? j.error ?? "Couldn't save your card.");
+    }
+    if (!j.transactionId) {
+      // Payment source not yet AVAILABLE — webhook will finish activation
+      throw new Error(
+        "Card saved but the bank hasn't approved it yet. Try a different card or check back in a few minutes.",
+      );
+    }
+    const finalStatus = await pollStatus(j.transactionId);
+    if (finalStatus === "APPROVED") {
+      setStage("success");
+      return;
+    }
+    if (finalStatus === "DECLINED") {
+      throw new Error("First charge declined. Try a different card.");
+    }
+    if (finalStatus === "ERROR" || finalStatus === "VOIDED") {
+      throw new Error("Wompi reported an error processing this card.");
+    }
+    throw new Error(
+      "Payment is still being processed. We'll activate your plan once it confirms.",
+    );
   }
 
   function reset() {
@@ -216,16 +307,15 @@ export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: 
       <section className="border border-rule bg-ivory p-10 text-center">
         <CheckCircle2 className="mx-auto h-12 w-12" style={{ color: "var(--moss)" }} />
         <h2 className="mt-5 font-serif text-3xl font-medium italic leading-tight text-text">
-          Payment approved.
+          {mode === "upfront" ? "Payment approved." : "Subscription active."}
         </h2>
         <p className="mt-3 text-sm text-text-2">
-          Your {plan.name} plan is now active. 3 months of full access starts today.
+          {mode === "upfront"
+            ? `Your ${plan.name} plan is now active. 3 months of full access starts today.`
+            : `Your ${plan.name} plan is now billing monthly. We'll charge your card every 30 days — cancel anytime.`}
         </p>
         <div className="mt-7">
-          <Button
-            variant="spark"
-            onClick={() => router.push("/dashboard?payment=success")}
-          >
+          <Button variant="spark" onClick={() => router.push("/dashboard?payment=success")}>
             Go to dashboard
           </Button>
         </div>
@@ -242,6 +332,96 @@ export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: 
           strategy="afterInteractive"
         />
       ) : null}
+
+      {/* ─── Mode toggle ─── */}
+      <section className="border border-rule bg-ivory p-7">
+        <div className="eyebrow mb-4">Billing rhythm</div>
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2" role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "upfront"}
+            onClick={() => setMode("upfront")}
+            className={cn(
+              "border p-5 text-left transition-colors duration-180",
+              mode === "upfront"
+                ? "border-coral bg-paper"
+                : "border-rule bg-ivory hover:border-espresso/40",
+            )}
+          >
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-2">
+              3 months upfront
+            </div>
+            <div className="mt-3 font-serif text-2xl font-medium text-text">
+              {formatUsd(plan.usdUpfrontTotal)}
+            </div>
+            <p className="mt-1 text-xs text-text-3">
+              One charge today. Nothing until you renew.
+            </p>
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={mode === "monthly"}
+            onClick={() => setMode("monthly")}
+            className={cn(
+              "border p-5 text-left transition-colors duration-180",
+              mode === "monthly"
+                ? "border-coral bg-paper"
+                : "border-rule bg-ivory hover:border-espresso/40",
+            )}
+          >
+            <div className="font-mono text-[10px] uppercase tracking-[0.16em] text-text-2">
+              Monthly
+            </div>
+            <div className="mt-3 font-serif text-2xl font-medium text-text">
+              {formatUsd(plan.usdMonthly)}
+              <span className="ml-2 font-mono text-[11px] tracking-[0.14em] text-text-3">
+                / mo
+              </span>
+            </div>
+            <p className="mt-1 text-xs text-text-3">
+              First charge today, then every 30 days. Cancel anytime.
+            </p>
+          </button>
+        </div>
+      </section>
+
+      {/* ─── Order summary ─── */}
+      <section className="border border-rule bg-ivory p-7">
+        <div className="eyebrow mb-4">Order summary</div>
+        <ul className="space-y-3">
+          <li className="flex items-baseline justify-between gap-4 text-sm">
+            <span className="text-text">
+              {plan.name} Plan {mode === "upfront" ? "× 3 months" : "(monthly)"}
+            </span>
+            <span className="font-mono text-[12px] tracking-[0.08em] text-text">
+              {formatUsd(usdToday)}
+            </span>
+          </li>
+          <li className="flex items-baseline justify-between gap-4 text-sm">
+            <span className="text-text-3">
+              Billed in COP at ~{USD_TO_COP_RATE.toLocaleString("en-US")} / USD
+            </span>
+            <span className="font-mono text-[11px] tracking-[0.08em] text-text-2">
+              {formatCop(copToday)}
+            </span>
+          </li>
+        </ul>
+        <div className="mt-5 flex items-baseline justify-between gap-4 border-t border-rule pt-5">
+          <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-text-2">
+            Total today
+          </span>
+          <span className="font-serif text-2xl font-medium text-text">
+            {formatUsd(usdToday)}
+          </span>
+        </div>
+        <p className="mt-3 text-xs text-text-3">
+          {mode === "upfront"
+            ? "Then nothing until you choose to renew."
+            : "Then the same amount every 30 days. Cancel anytime from settings."}
+        </p>
+      </section>
 
       {stage === "processing" ? (
         <section className="border border-rule bg-ivory p-10 text-center">
@@ -384,7 +564,9 @@ export function CheckoutForm({ plan, wompiPublicKey, wompiBaseUrl, userEmail }: 
           </div>
 
           <Button type="submit" variant="spark" className="w-full" disabled={!canSubmit}>
-            Pay {formatUsd(plan.usdTotal)} (3 months)
+            {mode === "upfront"
+              ? `Pay ${formatUsd(plan.usdUpfrontTotal)} (3 months)`
+              : `Start subscription · ${formatUsd(plan.usdMonthly)} / mo`}
           </Button>
 
           <p className="flex items-center justify-center gap-2 text-xs text-text-3">

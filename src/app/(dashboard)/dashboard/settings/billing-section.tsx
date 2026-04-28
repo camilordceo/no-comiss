@@ -8,6 +8,7 @@ import type {
   WompiTransaction,
 } from "@/lib/types/database";
 import { PLANS, formatUsd, USD_TO_COP_RATE } from "@/lib/services/wompi";
+import { CancelSubscriptionButton } from "./cancel-subscription-button";
 
 interface Props {
   plan: string | null;
@@ -128,6 +129,9 @@ export function BillingSection({
               <Button asChild variant="spark">
                 <Link href="/dashboard/subscribe">Upgrade plan</Link>
               </Button>
+              {effectiveStatus === "active" || effectiveStatus === "past_due" ? (
+                <CancelSubscriptionButton />
+              ) : null}
             </div>
           </div>
         )}

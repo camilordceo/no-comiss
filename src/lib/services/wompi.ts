@@ -245,6 +245,105 @@ export async function createCardTransaction(input: {
   return json.data;
 }
 
+export interface WompiPaymentSourceResponse {
+  id: number;
+  status: "AVAILABLE" | "PENDING" | "DECLINED" | "ERROR";
+  type: string;
+  customer_email: string;
+  public_data?: { last_four?: string; brand?: string; name?: string };
+}
+
+/**
+ * Create a CARD payment source for recurring billing. Server-side only — PRIVATE key.
+ * sessionId is the anti-fraud session id from Wompi JS (window.WidgetWompi).
+ */
+export async function createPaymentSource(input: {
+  cardToken: string;
+  customerEmail: string;
+  acceptanceToken: string;
+  acceptPersonalAuth: string;
+  sessionId?: string | null;
+}): Promise<WompiPaymentSourceResponse> {
+  const privateKey = process.env.WOMPI_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error("WOMPI_PRIVATE_KEY not configured");
+  }
+  const body: Record<string, unknown> = {
+    type: "CARD",
+    token: input.cardToken,
+    customer_email: input.customerEmail,
+    acceptance_token: input.acceptanceToken,
+    accept_personal_auth: input.acceptPersonalAuth,
+  };
+  if (input.sessionId) body.session_id = input.sessionId;
+
+  const res = await fetch(`${wompiBaseUrl()}/payment_sources`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${privateKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = (await res.json()) as { data?: WompiPaymentSourceResponse; error?: unknown };
+  if (!res.ok || !json.data) {
+    throw new Error(
+      `Wompi /payment_sources HTTP ${res.status} ${JSON.stringify(json.error ?? json)}`,
+    );
+  }
+  return json.data;
+}
+
+/**
+ * Charge a saved payment source. Server-side only — PRIVATE key.
+ * Used both for the immediate first-month charge and the daily billing cron.
+ */
+export async function createRecurringCharge(input: {
+  amountCents: number;
+  reference: string;
+  customerEmail: string;
+  paymentSourceId: number;
+  acceptanceToken: string;
+  signature: string;
+  installments?: number;
+}): Promise<WompiTransactionResponse> {
+  const privateKey = process.env.WOMPI_PRIVATE_KEY;
+  if (!privateKey) {
+    throw new Error("WOMPI_PRIVATE_KEY not configured");
+  }
+  const body = {
+    amount_in_cents: input.amountCents,
+    currency: "COP",
+    customer_email: input.customerEmail,
+    reference: input.reference,
+    payment_method_type: "CARD",
+    payment_method: {
+      type: "CARD",
+      payment_source_id: input.paymentSourceId,
+      installments: input.installments ?? 1,
+    },
+    signature: input.signature,
+    acceptance_token: input.acceptanceToken,
+  };
+  const res = await fetch(`${wompiBaseUrl()}/transactions`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${privateKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+    cache: "no-store",
+  });
+  const json = (await res.json()) as { data?: WompiTransactionResponse; error?: unknown };
+  if (!res.ok || !json.data) {
+    throw new Error(
+      `Wompi /transactions (recurring) HTTP ${res.status} ${JSON.stringify(json.error ?? json)}`,
+    );
+  }
+  return json.data;
+}
+
 /** Get transaction status. Server-side only — uses PRIVATE key. */
 export async function getTransaction(
   wompiTransactionId: string,

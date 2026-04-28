@@ -61,6 +61,22 @@ export type NotificationType =
   | "milestone"
   | "system";
 
+export type SubscriptionStatus =
+  | "none"
+  | "trial"
+  | "active"
+  | "past_due"
+  | "cancelled";
+
+export type PaymentSourceStatus = "AVAILABLE" | "PENDING" | "DECLINED" | "ERROR";
+
+export type WompiTransactionStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "DECLINED"
+  | "ERROR"
+  | "VOIDED";
+
 /**
  * `tipo_inmueble` is stored as a free-form string in the DB so it can hold both
  * Colombia values (apartamento, casa, apartaestudio, local, oficina, bodega)
@@ -85,6 +101,11 @@ export type Database = {
           plan: string | null;
           onboarding_completed: boolean | null;
           metadata: Json | null;
+          subscription_status: SubscriptionStatus | null;
+          subscription_plan: string | null;
+          subscription_started_at: string | null;
+          subscription_next_billing_at: string | null;
+          subscription_cancelled_at: string | null;
           created_at: string;
           updated_at: string | null;
         };
@@ -98,6 +119,11 @@ export type Database = {
           plan?: string | null;
           onboarding_completed?: boolean | null;
           metadata?: Json | null;
+          subscription_status?: SubscriptionStatus | null;
+          subscription_plan?: string | null;
+          subscription_started_at?: string | null;
+          subscription_next_billing_at?: string | null;
+          subscription_cancelled_at?: string | null;
         };
         Update: {
           id?: string;
@@ -109,6 +135,11 @@ export type Database = {
           plan?: string | null;
           onboarding_completed?: boolean | null;
           metadata?: Json | null;
+          subscription_status?: SubscriptionStatus | null;
+          subscription_plan?: string | null;
+          subscription_started_at?: string | null;
+          subscription_next_billing_at?: string | null;
+          subscription_cancelled_at?: string | null;
         };
         Relationships: [];
       };
@@ -397,6 +428,67 @@ export type Database = {
         Update: Partial<Database["public"]["Tables"]["notifications"]["Insert"]>;
         Relationships: [];
       };
+      payment_sources: {
+        Row: {
+          id: string;
+          user_id: string;
+          wompi_payment_source_id: number | null;
+          card_last_four: string | null;
+          card_brand: string | null;
+          is_default: boolean | null;
+          is_three_ds: boolean | null;
+          status: PaymentSourceStatus;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          wompi_payment_source_id?: number | null;
+          card_last_four?: string | null;
+          card_brand?: string | null;
+          is_default?: boolean | null;
+          is_three_ds?: boolean | null;
+          status?: PaymentSourceStatus;
+        };
+        Update: Partial<Database["public"]["Tables"]["payment_sources"]["Insert"]>;
+        Relationships: [];
+      };
+      wompi_transactions: {
+        Row: {
+          id: string;
+          user_id: string;
+          wompi_transaction_id: string | null;
+          reference: string;
+          amount_in_cents: number;
+          currency: string;
+          status: WompiTransactionStatus;
+          payment_source_id: string | null;
+          payment_method_type: string | null;
+          plan: string | null;
+          metadata: Json;
+          created_at: string;
+          updated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          wompi_transaction_id?: string | null;
+          reference: string;
+          amount_in_cents: number;
+          currency?: string;
+          status?: WompiTransactionStatus;
+          payment_source_id?: string | null;
+          payment_method_type?: string | null;
+          plan?: string | null;
+          metadata?: Json;
+        };
+        Update: Partial<Database["public"]["Tables"]["wompi_transactions"]["Insert"]> & {
+          status?: WompiTransactionStatus;
+          wompi_transaction_id?: string | null;
+          updated_at?: string | null;
+        };
+        Relationships: [];
+      };
       propiedad_media: {
         Row: {
           id: string;
@@ -483,3 +575,5 @@ export type Lead = Database["public"]["Tables"]["leads"]["Row"];
 export type Cita = Database["public"]["Tables"]["citas"]["Row"];
 export type Oferta = Database["public"]["Tables"]["ofertas"]["Row"];
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
+export type PaymentSource = Database["public"]["Tables"]["payment_sources"]["Row"];
+export type WompiTransaction = Database["public"]["Tables"]["wompi_transactions"]["Row"];

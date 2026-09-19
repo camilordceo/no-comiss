@@ -37,10 +37,12 @@ export default function MarketingPage() {
             </Reveal>
 
             <Reveal delay={120}>
-              <h1 className="mt-8 font-serif text-[clamp(2.5rem,7vw,5rem)] font-medium leading-[1.02] tracking-[-0.02em] text-text">
-                Sell your home.
+              <h1 className="mt-8 font-serif text-[clamp(2.25rem,5.5vw,4rem)] font-medium leading-[1.06] tracking-[-0.02em] text-text">
+                Save up to $50,000
                 <br />
-                <span className="italic text-coral">Keep the commission.</span>
+                <span className="italic text-coral">
+                  using AI real estate agents that sell your home.
+                </span>
               </h1>
             </Reveal>
 

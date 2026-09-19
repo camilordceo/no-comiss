@@ -38,10 +38,10 @@ export default function MarketingPage() {
 
             <Reveal delay={120}>
               <h1 className="mt-8 font-serif text-[clamp(2.25rem,5.5vw,4rem)] font-medium leading-[1.06] tracking-[-0.02em] text-text">
-                Save up to $50,000
+                Save 6%
                 <br />
                 <span className="italic text-coral">
-                  using AI real estate agents that sell your home.
+                  using AI real estate agents and NoComiss automated tools.
                 </span>
               </h1>
             </Reveal>
@@ -51,7 +51,8 @@ export default function MarketingPage() {
                 The 6% real estate commission was invented in 1913. It costs the
                 average American seller{" "}
                 <span className="font-semibold text-text">$25,000 to $50,000</span>{" "}
-                — to put a house on a website. We replaced that with AI.
+                — to put a house on a website. Keep that 6%: AI agents and
+                NoComiss automated tools do the work instead.
               </p>
             </Reveal>
 

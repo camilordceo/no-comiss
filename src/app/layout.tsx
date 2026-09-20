@@ -27,18 +27,18 @@ const jetbrainsMono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NoComiss — Save 6% selling your home with AI",
+    default: "NoComiss — Save up to $150,000 selling your home with AI",
     template: "%s · NoComiss",
   },
   description:
-    "Save the 6% commission using AI real estate agents and NoComiss automated tools. We list, market, and sell your home for a flat $99/month.",
+    "Save up to $150,000 in commission using AI real estate agents. We automate your leads, appointments, and paperwork for a flat $99/month.",
   metadataBase: new URL(
     process.env.NEXT_PUBLIC_APP_URL ?? "https://no-comiss.vercel.app",
   ),
   openGraph: {
-    title: "NoComiss — Save 6% selling your home with AI",
+    title: "NoComiss — Save up to $150,000 selling your home with AI",
     description:
-      "AI real estate agents sell your home for $99/month. Save the full 6% commission.",
+      "AI real estate agents sell your home for $99/month. Keep the commission — up to $150,000 of it.",
     type: "website",
     siteName: "NoComiss",
     locale: "en_US",
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "NoComiss",
     description:
-      "Save 6% using AI real estate agents and NoComiss automated tools.",
+      "Save up to $150,000 using AI real estate agents. Leads, appointments, and paperwork on autopilot.",
   },
 };
 

@@ -38,21 +38,17 @@ export default function MarketingPage() {
 
             <Reveal delay={120}>
               <h1 className="mt-8 font-serif text-[clamp(2.25rem,5.5vw,4rem)] font-medium leading-[1.06] tracking-[-0.02em] text-text">
-                Save 6%
+                Save up to $150,000
                 <br />
                 <span className="italic text-coral">
-                  using AI real estate agents and NoComiss automated tools.
+                  using AI real estate agents.
                 </span>
               </h1>
             </Reveal>
 
             <Reveal delay={240}>
               <p className="mx-auto mt-7 max-w-2xl text-lg leading-relaxed text-text-2 md:text-xl">
-                The 6% real estate commission was invented in 1913. It costs the
-                average American seller{" "}
-                <span className="font-semibold text-text">$25,000 to $50,000</span>{" "}
-                — to put a house on a website. Keep that 6%: AI agents and
-                NoComiss automated tools do the work instead.
+                We automate your leads, appointments, and legal things.
               </p>
             </Reveal>
 
@@ -91,48 +87,57 @@ export default function MarketingPage() {
               <div>
                 <div className="eyebrow eyebrow-coral mb-5">The Math</div>
                 <h2 className="font-serif text-[clamp(2rem,5vw,3.5rem)] font-medium leading-[1.05] tracking-[-0.01em] text-text">
-                  <span className="italic">$42,500.</span>
+                  <span className="italic">The commission scales.</span>
                   <br />
-                  That&apos;s what your agent will charge.
+                  The work doesn&apos;t.
                 </h2>
                 <p className="mt-6 max-w-md text-base leading-relaxed text-text-2">
-                  On a $700,000 home — the U.S. median — the standard 6% commission
-                  takes <strong className="text-text">$42,000</strong> off the table at
-                  closing. The average agent spends{" "}
-                  <strong className="text-text">12 hours</strong> on your sale. Do the
-                  math on the hourly rate.
+                  Six percent of $700,000 is $42,000. Six percent of $2.5 million is{" "}
+                  <strong className="text-text">$150,000</strong> — for the same
+                  listing, the same photos, the same paperwork. The average agent
+                  spends <strong className="text-text">12 hours</strong> on your sale.
+                  Do the math on the hourly rate.
                 </p>
               </div>
             </Reveal>
 
             <div className="grid grid-cols-1 gap-3">
-              <Reveal delay={80}>
-                <div className="stat-tile">
-                  <div className="data-key">Traditional Commission</div>
-                  <div className="stat-value mt-2">6%</div>
-                  <div className="mt-2 text-sm text-text-3">
-                    Standard agent split — buyer + seller side
+              {[
+                {
+                  price: "$700,000 home · U.S. median",
+                  commission: "$42,000",
+                  savings: "$41,703",
+                  spark: false,
+                },
+                {
+                  price: "$1,200,000 home",
+                  commission: "$72,000",
+                  savings: "$71,703",
+                  spark: false,
+                },
+                {
+                  price: "$2,500,000 home",
+                  commission: "$150,000",
+                  savings: "$149,703",
+                  spark: true,
+                },
+              ].map(({ price, commission, savings, spark }, i) => (
+                <Reveal key={price} delay={80 + i * 80}>
+                  <div className={spark ? "stat-tile stat-tile-spark" : "stat-tile"}>
+                    <div
+                      className="data-key"
+                      style={spark ? { color: "var(--coral)" } : undefined}
+                    >
+                      {price}
+                    </div>
+                    <div className="stat-value mt-2">{savings}</div>
+                    <div className="mt-2 text-sm text-text-3">
+                      You keep this instead of paying {commission} in commission —
+                      NoComiss costs $297 for a typical 3-month sale.
+                    </div>
                   </div>
-                </div>
-              </Reveal>
-              <Reveal delay={160}>
-                <div className="stat-tile">
-                  <div className="data-key">NoComiss Price</div>
-                  <div className="stat-value mt-2">$99<span className="text-2xl text-text-3">/mo</span></div>
-                  <div className="mt-2 text-sm text-text-3">
-                    Flat rate. Cancel when you close.
-                  </div>
-                </div>
-              </Reveal>
-              <Reveal delay={240}>
-                <div className="stat-tile stat-tile-spark">
-                  <div className="data-key" style={{ color: "var(--coral)" }}>Your Savings</div>
-                  <div className="stat-value mt-2">$42,401</div>
-                  <div className="mt-2 text-sm text-text-3">
-                    On the median U.S. home sale
-                  </div>
-                </div>
-              </Reveal>
+                </Reveal>
+              ))}
             </div>
           </div>
         </div>
@@ -264,8 +269,8 @@ export default function MarketingPage() {
                   </p>
                   <p className="mt-7 max-w-2xl text-base leading-relaxed text-text-on-dark-2">
                     Wall Street has trading bots. Doctors have ChatGPT. The Department
-                    of Defense has Copilot. You shouldn&apos;t need to pay $40,000 to
-                    list a house on a website. We rebuilt the agent — pricing intel,
+                    of Defense has Copilot. You shouldn&apos;t need to pay $40,000 —
+                    or $150,000 — to list a house on a website. We rebuilt the agent — pricing intel,
                     listing copy, ad targeting, lead screening — for the price of a
                     decent dinner.
                   </p>
